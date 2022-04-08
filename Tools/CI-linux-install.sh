@@ -11,8 +11,9 @@ else
 	$RETRY sudo apt-get -qq update
 fi
 
-$RETRY sudo apt-get -qq install libboost-dev libpcre3-dev
-# Note: testflags.py needs python, but python is pre-installed
+$RETRY sudo apt-get -qq install libpcre2-dev cmake bison
+# testflags.py needs python
+# $RETRY sudo apt-get install -qq python
 
 WITHLANG=$SWIGLANG
 
@@ -54,7 +55,7 @@ case "$SWIGLANG" in
 				fi
 				;;
 			"jsc")
-				$RETRY sudo apt-get install -qq libjavascriptcoregtk-${VER}-dev
+				$RETRY sudo apt-get install -qq libjavascriptcoregtk-4.0-dev
 				;;
 			"v8")
 				$RETRY sudo apt-get install -qq libv8-dev
@@ -62,7 +63,7 @@ case "$SWIGLANG" in
 		esac
 		;;
 	"guile")
-		$RETRY sudo apt-get -qq install guile-${VER:-2.0}-dev
+		$RETRY sudo apt-get -qq install guile-2.0-dev
 		;;
 	"lua")
 		if [[ -z "$VER" ]]; then
@@ -131,16 +132,12 @@ case "$SWIGLANG" in
 			source $HOME/.rvm/scripts/rvm
 			set -x
 		fi
-		case "$VER" in
-			2.7 | 3.0 | 3.1 )
-				# Ruby 2.7+ support is currently only rvm master (30 Dec 2019)
-			        set +x
-				$RETRY rvm get master
-				rvm reload
-				rvm list known
-			        set -x
-				;;
-		esac
+		if [[ "$VER" == "2.7" || "$VER" == "3.0" ]]; then
+			# Ruby 2.7+ support is currently only rvm master (30 Dec 2019)
+			$RETRY rvm get master
+			rvm reload
+			rvm list known
+		fi
 		if [[ "$VER" ]]; then
 			$RETRY rvm install $VER
 		fi

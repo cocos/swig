@@ -155,14 +155,14 @@ static void resize(Hash *h) {
   int oldsize, newsize;
   int i, p, hv;
 
-  if (h->nitems < 2 * h->hashsize)
+  if (h->nitems < 3 * h->hashsize) //cjh change from 2 to 3 to avoid crash for generating cocos assets binding
     return;
 
   /* Too big. We have to rescale everything now */
   oldsize = h->hashsize;
 
   /* Calculate a new size */
-  newsize = 2 * oldsize + 1;
+  newsize = 3 * oldsize + 1; //cjh change from 2 to 3 to avoid crash for generating cocos assets binding
   p = 3;
   while (p < (newsize >> 1)) {
     if (((newsize / p) * p) == newsize) {

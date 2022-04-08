@@ -44,6 +44,8 @@
 
 #define %readonly    %warn "114:%readonly is deprecated. Use %immutable; " %feature("immutable");
 #define %readwrite   %warn "115:%readwrite is deprecated. Use %mutable; " %feature("immutable","");
+#define %writeonly      %feature("writeonly")
+#define %clearwriteonly %feature("writeonly", "")
 
 #define %immutable       %feature("immutable")
 #define %noimmutable     %feature("immutable","0")
@@ -601,7 +603,7 @@ namespace std {
 /* -----------------------------------------------------------------------------
  *  Runtime code
  * ----------------------------------------------------------------------------- */
-
+#ifndef SWIG_JAVASCRIPT_COCOS
 
 %insert("runtime") "swiglabels.swg"
 
@@ -674,6 +676,7 @@ namespace std {
  * known as the "Fulton Transform" :-).
  */
 
+
 #ifdef __cplusplus
 // Placed in the header section to ensure the language specific header files are
 // the first included headers and not <utility>
@@ -727,3 +730,12 @@ template <typename T> T SwigValueInit() {
 %}
 #endif
 
+#else
+
+#ifdef __cplusplus
+%insert("header") %{
+#define SWIG_STD_MOVE(OBJ) std::move(OBJ)
+%}
+#endif // #ifdef __cplusplus
+
+#endif // #ifndef SWIG_JAVASCRIPT_COCOS

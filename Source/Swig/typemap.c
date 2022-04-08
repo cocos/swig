@@ -1906,7 +1906,7 @@ void Swig_typemap_attach_parms(const_String_or_char_ptr tmap_method, ParmList *p
 #ifdef SWIG_DEBUG
   Printf(stdout, "Swig_typemap_attach_parms: end\n");
 #endif
-
+#undef SWIG_DEBUG
 }
 
 /* Splits the arguments of an embedded typemap */

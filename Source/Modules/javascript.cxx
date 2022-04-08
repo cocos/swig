@@ -45,7 +45,9 @@ static bool js_template_enable_debug = false;
 
 // keys for global state variables
 #define CREATE_NAMESPACES "create_namespaces"
+#define REGISTER_CLASSES "register_classes"
 #define REGISTER_NAMESPACES "register_namespaces"
+#define REGISTER_GLOBAL "register_global"
 #define INITIALIZER "initializer"
 
 // keys for class scoped state variables
@@ -797,8 +799,13 @@ int JSEmitter::enterClass(Node *n) {
 
   // Creating a mangled name using the current namespace and the symbol name
   String *mangled_name = NewString("");
-  Printf(mangled_name, "%s_%s", Getattr(current_namespace, NAME_MANGLED), Getattr(n, "sym:name"));
-  state.clazz(NAME_MANGLED, SwigType_manglestr(mangled_name));
+    //cjh
+    Printf(mangled_name, "%s", Getattr(n, "classtype"));
+    Replaceall(mangled_name, "::", "_");
+
+    // Printf(mangled_name, "%s_%s", Getattr(current_namespace, NAME_MANGLED), Getattr(n, "sym:name"));
+
+  state.clazz(NAME_MANGLED, mangled_name);
   Delete(mangled_name);
 
   state.clazz(TYPE, NewString(Getattr(n, "classtype")));
@@ -914,6 +921,7 @@ int JSEmitter::emitCtor(Node *n) {
       Template t_mainctor(getTemplate("js_ctor_dispatcher"));
       t_mainctor.replace("$jswrapper", wrap_name)
 	  .replace("$jsmangledname", state.clazz(NAME_MANGLED))
+      .replace("$jsname", state.clazz(NAME))
 	  .replace("$jsdispatchcases", state.clazz(CTOR_DISPATCHERS))
 	  .pretty_print(f_wrappers);
       state.clazz(CTOR, wrap_name);

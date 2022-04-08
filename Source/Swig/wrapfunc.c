@@ -70,7 +70,7 @@ void Wrapper_pretty_print(String *str, File *f) {
   int level = 0;
   int c, i;
   int empty = 1;
-  int indent = 2;
+  int indent = 4;
   int plevel = 0;
   int label = 0;
 
@@ -215,7 +215,7 @@ void Wrapper_compact_print(String *str, File *f) {
   int level = 0;
   int c, i;
   int empty = 1;
-  int indent = 2;
+  int indent = 4;
 
   ts = NewStringEmpty();
   tf = NewStringEmpty();

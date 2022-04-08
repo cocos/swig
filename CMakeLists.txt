@@ -1,10 +1,23 @@
-cmake_minimum_required (VERSION 3.2)
+cmake_minimum_required (VERSION 3.15)
 
 if (NOT DEFINED CMAKE_BUILD_TYPE)
   set (CMAKE_BUILD_TYPE Release CACHE STRING "Build type")
 endif ()
 
+cmake_policy (SET CMP0091 NEW)
+
 project (swig)
+
+if(UNIX AND NOT APPLE)
+    set(LINUX TRUE)
+endif()
+
+# set c++ standard
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
 
 if (POLICY CMP0074)
   cmake_policy (SET CMP0074 NEW)
@@ -125,14 +138,40 @@ install (FILES ${CMAKE_CURRENT_BINARY_DIR}/swigwarn.swg DESTINATION ${SWIG_LIB})
 
 # sources
 # ---------
-file (GLOB DOH_SOURCES ${SWIG_SOURCE_DIR}/DOH/*.c)
-file (GLOB CPARSE_SOURCES ${SWIG_SOURCE_DIR}/CParse/*.c)
+file (GLOB DOH_SOURCES ${SWIG_SOURCE_DIR}/DOH/*.c ${SWIG_SOURCE_DIR}/DOH/*.h)
+file (GLOB CPARSE_SOURCES ${SWIG_SOURCE_DIR}/CParse/*.c ${SWIG_SOURCE_DIR}/CParse/*.h)
 list (REMOVE_ITEM CPARSE_SOURCES ${SWIG_SOURCE_DIR}/CParse/parser.c)
 list (APPEND CPARSE_SOURCES)
-file (GLOB PREPROCESSOR_SOURCES ${SWIG_SOURCE_DIR}/Preprocessor/*.c)
-file (GLOB CORE_SOURCES ${SWIG_SOURCE_DIR}/Swig/*.c)
-file (GLOB DOXYGEN_SOURCES ${SWIG_SOURCE_DIR}/Doxygen/*.cxx)
-file (GLOB MODULES_SOURCES ${SWIG_SOURCE_DIR}/Modules/*.cxx)
+file (GLOB PREPROCESSOR_SOURCES ${SWIG_SOURCE_DIR}/Preprocessor/*.c ${SWIG_SOURCE_DIR}/Preprocessor/*.h)
+file (GLOB CORE_SOURCES ${SWIG_SOURCE_DIR}/Swig/*.c ${SWIG_SOURCE_DIR}/Swig/*.h)
+file (GLOB DOXYGEN_SOURCES ${SWIG_SOURCE_DIR}/Doxygen/*.cxx ${SWIG_SOURCE_DIR}/Doxygen/*.h)
+
+# We only needs cocos backend
+# file (GLOB MODULES_SOURCES ${SWIG_SOURCE_DIR}/Modules/*.cxx ${SWIG_SOURCE_DIR}/Modules/*.h)
+
+set (MODULES_SOURCES 
+  ${SWIG_SOURCE_DIR}/Modules/cocos.cxx
+  ${SWIG_SOURCE_DIR}/Modules/contract.cxx
+  ${SWIG_SOURCE_DIR}/Modules/emit.cxx
+  ${SWIG_SOURCE_DIR}/Modules/main.cxx
+  ${SWIG_SOURCE_DIR}/Modules/lang.cxx
+  ${SWIG_SOURCE_DIR}/Modules/overload.cxx
+  ${SWIG_SOURCE_DIR}/Modules/nested.cxx
+  ${SWIG_SOURCE_DIR}/Modules/typepass.cxx
+  ${SWIG_SOURCE_DIR}/Modules/interface.cxx
+  ${SWIG_SOURCE_DIR}/Modules/utils.cxx
+  ${SWIG_SOURCE_DIR}/Modules/xml.cxx
+  ${SWIG_SOURCE_DIR}/Modules/allocate.cxx
+  ${SWIG_SOURCE_DIR}/Modules/swigmain.cxx
+  ${SWIG_SOURCE_DIR}/Modules/swigmod.h
+)
+
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${DOH_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${CPARSE_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${PREPROCESSOR_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${CORE_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${DOXYGEN_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${MODULES_SOURCES})
 
 add_executable (swig
   ${CPARSE_SOURCES}
@@ -146,9 +185,19 @@ add_executable (swig
   ${PROJECT_BINARY_DIR}/Source/CParse/parser.c
   ${PROJECT_BINARY_DIR}/Source/CParse/parser.h
 )
+
+if (MSVC)
+set_property(TARGET swig PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif ()
+
 if (PCRE2_FOUND)
   target_link_libraries (swig ${PCRE2_LIBRARIES})
 endif ()
+
+if (LINUX)
+  target_link_libraries (swig pthread -static)
+endif ()
+
 install (TARGETS swig DESTINATION bin)
 
 # 'make package-source' creates tarballs
