@@ -814,7 +814,16 @@ int JSEmitter::enterClass(Node *n) {
 
   // Creating a mangled name using the current namespace and the symbol name
   String *mangled_name = NewString("");
-  Printf(mangled_name, "%s_%s", Getattr(current_namespace, NAME_MANGLED), Getattr(n, "sym:name"));
+    //cjh
+    String *parentNode = Getattr(n, "parentNode");
+    if (parentNode) {
+        Printf(mangled_name, "%s_%s", Getattr(parentNode, "sym:name"), Getattr(n, "sym:name"));
+    }
+    else {
+        Printf(mangled_name, "%s", Getattr(n, "sym:name"));
+    }
+    // Printf(mangled_name, "%s_%s", Getattr(current_namespace, NAME_MANGLED), Getattr(n, "sym:name"));
+
   state.clazz(NAME_MANGLED, SwigType_manglestr(mangled_name));
   Delete(mangled_name);
 
@@ -931,6 +940,7 @@ int JSEmitter::emitCtor(Node *n) {
       Template t_mainctor(getTemplate("js_ctor_dispatcher"));
       t_mainctor.replace("$jswrapper", wrap_name)
 	  .replace("$jsmangledname", state.clazz(NAME_MANGLED))
+      .replace("$jsname", state.clazz(NAME))
 	  .replace("$jsdispatchcases", state.clazz(CTOR_DISPATCHERS))
 	  .pretty_print(f_wrappers);
       state.clazz(CTOR, wrap_name);
@@ -2378,7 +2388,7 @@ void CocosEmitter::marshalInputArgs(Node *n, ParmList *parms, Wrapper *wrapper, 
       if (is_member && !is_static && i == 0) {
     Printv(arg, "thisObject", 0);
       } else {
-    Printf(arg, "argv[%d]", i - startIdx);
+    Printf(arg, "args[%d]", i - startIdx);
       }
       break;
     case Setter:
@@ -2389,7 +2399,7 @@ void CocosEmitter::marshalInputArgs(Node *n, ParmList *parms, Wrapper *wrapper, 
       }
       break;
     case Ctor:
-      Printf(arg, "argv[%d]", i);
+      Printf(arg, "args[%d]", i);
       break;
     default:
       Printf(stderr, "Illegal MarshallingMode.");
@@ -2554,7 +2564,9 @@ int CocosEmitter::enterClass(Node *n) {
   state.clazz(STATIC_FUNCTIONS, NewString(""));
 
   Template t_class_decl = getTemplate("jsc_class_declaration");
+  String *type = SwigType_manglestr(Getattr(n, "classtypeobj"));
   t_class_decl.replace("$jsmangledname", state.clazz(NAME_MANGLED))
+      .replace("$jsname", state.clazz(NAME))
       .pretty_print(f_wrappers);
 
   return SWIG_OK;

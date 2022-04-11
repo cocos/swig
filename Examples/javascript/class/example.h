@@ -1,7 +1,14 @@
 /* File : example.h */
 namespace cc {
+
+struct SomeObject { 
+  float value[100];
+};
+
 class Shape {
 public:
+  
+
   Shape() {
     nshapes++;
   }
@@ -21,6 +28,22 @@ public:
   // double  x, y;   
   void    move(double dx, double dy);
   void move(bool doMove);
+
+  int hello(int a);
+
+  Shape* addChild(Shape* child);
+
+  void setName(const char* name, char* prettyName);
+  void setNameHaha2(char* name);
+
+  void setInt(int positive);
+
+  void testOut(int* out);
+  void testMallocFree(int *items);
+  void doSomeObject(SomeObject);
+
+
+  static bool staticHello(float a);
   // virtual double area() = 0;
   // virtual double perimeter() = 0;
   static  int nshapes;

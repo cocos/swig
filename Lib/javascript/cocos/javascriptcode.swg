@@ -20,13 +20,8 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
     }
 
     $jslocals
-
-
     $jscode
     return SWIG_JSC_NewPointerObj(context, result, SWIGTYPE_$jsmangledtype, SWIG_POINTER_OWN);
-    goto fail;
-    fail:
-    SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, 1);
     return false;
 }
 SE_BIND_CTOR($jswrapper)
@@ -59,8 +54,8 @@ SE_BIND_CTOR($jswrapper)
 %{
 static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
 {
-    size_t argc = args.size();
     // js_ctor_dispatcher
+    size_t argc = args.size();
     bool ret = false;
 
     // switch all cases by means of series of if-returns.
@@ -68,11 +63,9 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
 
     // default:
     SE_REPORT_ERROR("Illegal arguments for construction of $jsname");
-
-    fail:
-    return ret;
+    return false;
 }
-SE_BIND_CTOR($jswrapper)
+SE_BIND_CTOR($jswrapper, __jsb$jsmangledname_class, _wrap_delete_$jsname)
 %}
 
 /* -----------------------------------------------------------------------------
@@ -88,17 +81,13 @@ SE_BIND_CTOR($jswrapper)
 static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
 {
     // js_overloaded_ctor
+    const auto& args = s.args();
     $jslocals
     $jscode
     auto *ptr = JSB_MAKE_PRIVATE_OBJECT_WITH_INSTANCE(result);
     s.thisObject()->setPrivateObject(ptr);
     return true;
-
-    goto fail;
-    fail:
-    return NULL;
 }
-SE_BIND_CTOR($jswrapper)
 %}
 
 /* -----------------------------------------------------------------------------
@@ -125,17 +114,12 @@ SE_BIND_CTOR($jswrapper)
  * ----------------------------------------------------------------------------- */
 %fragment ("js_dtor", "templates")
 %{
-static void $jswrapper(JSObjectRef thisObject)
+// js_dtor
+static bool $jswrapper(se::State& s)
 {
-  SwigPrivData* t = (SwigPrivData*) JSObjectGetPrivate(thisObject);
-  if(t) {
-    if (t->swigCMemOwn) {
-      free (($jstype)t->swigCObject);
-    }
-    JSObjectSetPrivate(thisObject, NULL);
-    free(t);
-  }
+  return true;
 }
+SE_BIND_FINALIZE_FUNC($jswrapper)
 %}
 
 /* -----------------------------------------------------------------------------
@@ -148,17 +132,10 @@ static void $jswrapper(JSObjectRef thisObject)
 %{
 static void $jswrapper(JSObjectRef thisObject)
 {
-  SwigPrivData* t = (SwigPrivData*) JSObjectGetPrivate(thisObject);
-  if(t) {
-    if (t->swigCMemOwn) {
-      $jstype arg1 = ($jstype)t->swigCObject;
-      ${destructor_action}
-    }
-    /* remove the private data to make sure that it isn't accessed elsewhere */
-    JSObjectSetPrivate(thisObject, NULL);
-    free(t);
-  }
+// js_dtoroverride
+  return true;
 }
+SE_BIND_FINALIZE_FUNC($jswrapper)
 %}
 
 /* -----------------------------------------------------------------------------
@@ -172,14 +149,8 @@ static void $jswrapper(JSObjectRef thisObject)
 static JSValueRef $jswrapper(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
 {
     $jslocals
-    JSValueRef jsresult;
-
     $jscode
     return jsresult;
-
-    goto fail;
-    fail:
-    return JSValueMakeUndefined(context);
 }
 %}
 
@@ -212,20 +183,23 @@ static bool $jswrapper(JSContextRef context, JSObjectRef thisObject, JSStringRef
  * ----------------------------------------------------------------------------- */
 %fragment ("js_function", "templates")
 %{
-static JSValueRef $jswrapper(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argc, const JSValueRef argv[], JSValueRef* exception)
+static bool $jswrapper(se::State& s)
 {
+  // js_function
+  CC_UNUSED bool ok = true;
+  const auto& args = s.args();
+  size_t argc = args.size();
   $jslocals
-  JSValueRef jsresult;
 
-  if(argc != $jsargcount) SWIG_exception_fail(SWIG_ERROR, "Illegal number of arguments for $jswrapper.");
+  if(argc != $jsargcount) {
+    SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, $jsargcount);
+    return false;
+  }
 
   $jscode
-  return jsresult;
-
-  goto fail;
-  fail:
-  return JSValueMakeUndefined(context);
+  return true;
 }
+SE_BIND_FUNC($jswrapper)
 %}
 
 /* -----------------------------------------------------------------------------
@@ -237,20 +211,18 @@ static JSValueRef $jswrapper(JSContextRef context, JSObjectRef function, JSObjec
  * ----------------------------------------------------------------------------- */
 %fragment ("js_function_dispatcher", "templates")
 %{
-static JSValueRef $jswrapper(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argc, const JSValueRef argv[], JSValueRef* exception)
+static bool $jswrapper(se::State& s)
 {
+  // js_function_dispatcher
+  CC_UNUSED bool ok = true;
+  const auto& args = s.args();
+  size_t argc = args.size();
   $jslocals
-  JSValueRef jsresult;
-  int res;
   $jscode
-
-  SWIG_exception_fail(SWIG_ERROR, "Illegal arguments for function $jsname.");
-  return jsresult;
-
-  goto fail;
-  fail:
-  return JSValueMakeUndefined(context);
+  SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, $jsargcount);
+  return false;
 }
+SE_BIND_FUNC($jswrapper)
 %}
 
 /* -----------------------------------------------------------------------------
@@ -261,20 +233,13 @@ static JSValueRef $jswrapper(JSContextRef context, JSObjectRef function, JSObjec
  * ----------------------------------------------------------------------------- */
 %fragment ("js_overloaded_function", "templates")
 %{
-static int $jswrapper(JSContextRef context, JSObjectRef function, JSObjectRef thisObject, size_t argc, const JSValueRef argv[], JSValueRef* exception, JSValueRef* p_result)
-{
+static bool $jswrapper(se::State& s)
+{// js_overloaded_function
   $jslocals
-  JSValueRef jsresult;
-
-  if(argc != $jsargcount) SWIG_exception_fail(SWIG_ERROR, "Illegal number of arguments for $jswrapper.");
 
   $jscode
   *p_result = jsresult;
-  return SWIG_OK;
-
-  goto fail;
-  fail:
-  return SWIG_TypeError;
+  return true;
 }
 %}
 
@@ -285,10 +250,10 @@ static int $jswrapper(JSContextRef context, JSObjectRef function, JSObjectRef th
  *   - $jscode:     code part of wrapper
  * ----------------------------------------------------------------------------- */
 %fragment ("js_function_dispatch_case", "templates")
-%{
-  if(argc == $jsargcount) {
-     res = $jswrapper(context, function, thisObject, argc, argv, exception, &jsresult);
-     if(res == SWIG_OK) { *exception = 0; return jsresult; }
+%{// js_function_dispatch_case
+  if (argc == $jsargcount) {
+     ok = $jswrapper(s);
+     if (ok) { return true; }
   }
 %}
 
@@ -320,11 +285,9 @@ static int $jswrapper(JSContextRef context, JSObjectRef function, JSObjectRef th
  * ----------------------------------------------------------------------------- */
 %fragment ("jsc_class_declaration", "templates")
 %{
-static JSClassDefinition $jsmangledname_classDefinition;
-
-static JSClassDefinition $jsmangledname_objectDefinition;
-
-static JSClassRef $jsmangledname_classRef;
+se::Class* __jsb$jsmangledname_class;
+se::Object* __jsb$jsmangledname_proto;
+SE_DECLARE_FINALIZE_FUNC(_wrap_delete_$jsname)
 %}
 
 /* -----------------------------------------------------------------------------
