@@ -527,3 +527,9 @@ typedef struct{} LANGUAGE_OBJ;
     PyList_SetItem($result, i, o);
   }
 }
+
+%typemap(check) double %{ 
+  if ($1 < 0) {
+    croak("hahaha Expecting a positive number"); 
+  }
+%}

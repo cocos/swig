@@ -16,4 +16,4 @@
 
 %include <javascriptcode.swg>
 
-//cjh %include <javascriptinit.swg>
+%include <javascriptinit.swg>

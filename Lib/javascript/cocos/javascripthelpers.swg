@@ -1,4 +1,3 @@
-/*cjh
 %insert(wrapper) %{
  
 SWIGINTERN bool JS_registerClass(JSGlobalContextRef context, JSObjectRef parentObject,
@@ -68,4 +67,3 @@ SWIGINTERN JSValueRef JS_CharPtrToJSValue(JSContextRef context, char* cstr) {
   return val;
 }
 %}
-*/

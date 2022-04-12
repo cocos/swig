@@ -21,8 +21,9 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
 
     $jslocals
     $jscode
-    return SWIG_JSC_NewPointerObj(context, result, SWIGTYPE_$jsmangledtype, SWIG_POINTER_OWN);
-    return false;
+    auto *ptr = JSB_MAKE_PRIVATE_OBJECT_WITH_INSTANCE(result);
+    s.thisObject()->setPrivateObject(ptr);
+    return true;
 }
 SE_BIND_CTOR($jswrapper)
 %}
@@ -264,9 +265,10 @@ static bool $jswrapper(se::State& s)
  *   - $jssetter:     wrapper of setter function
  * ----------------------------------------------------------------------------- */
 %fragment ("jsc_variable_declaration", "templates")
-%{
-  {"$jsname", $jsgetter, $jssetter, kJSPropertyAttributeNone},
-%}
+%{ cls->defineProperty("$jsname", _SE($jsgetter), _SE($jssetter)); %}
+
+%fragment ("jsc_static_variable_declaration", "templates")
+%{ cls->defineStaticProperty("$jsname", _SE($jsgetter), _SE($jssetter)); %}
 
 
 /* -----------------------------------------------------------------------------
@@ -275,9 +277,10 @@ static bool $jswrapper(se::State& s)
  *   - $jswrapper:    wrapper function
  * ----------------------------------------------------------------------------- */
 %fragment ("jsc_function_declaration", "templates")
-%{
-  {"$jsname", $jswrapper, kJSPropertyAttributeNone},
-%}
+%{ cls->defineFunction("$jsname", _SE($jswrapper)); %}
+
+%fragment ("jsc_static_function_declaration", "templates")
+%{ cls->defineStaticFunction("$jsname", _SE($jswrapper)); %}
 
 /* -----------------------------------------------------------------------------
  * jsc_classtemplate_declaration:  template for a namespace declaration
@@ -330,29 +333,28 @@ static JSStaticFunction $jsmangledname_functions[] = {
  * ----------------------------------------------------------------------------- */
 %fragment ("jsc_class_definition", "templates")
 %{
-  $jsmangledname_classDefinition.staticFunctions = $jsmangledname_staticFunctions;
-  $jsmangledname_classDefinition.staticValues = $jsmangledname_staticValues;
-  $jsmangledname_classDefinition.callAsConstructor = $jsctor;
-  $jsmangledname_objectDefinition.finalize = $jsdtor;
-  $jsmangledname_objectDefinition.staticValues = $jsmangledname_values;
-  $jsmangledname_objectDefinition.staticFunctions = $jsmangledname_functions;
+bool js_register$jsmangledname(se::Object* obj) {
   $jsclass_inheritance
-  $jsmangledname_classRef = JSClassCreate(&$jsmangledname_objectDefinition);
-  SWIGTYPE_$jsmangledtype->clientdata = $jsmangledname_classRef;
+  $jsclassvariables
+  $jsclassfunctions
+  $jsstaticclassvariables
+  $jsstaticclassfunctions
+  cls->defineFinalizeFunction(_SE($jsdtor));
+  cls->install();
+  JSBClassType::registerClass<$jsclassname>(cls);
+
+  __jsb$jsmangledname_proto = cls->getProto();
+  __jsb$jsmangledname_class = cls;
+  se::ScriptEngine::getInstance()->clearException();
+  return true;
+}
 %}
 
 %fragment ("jsc_class_inherit", templates)
-%{
-    if (SWIGTYPE_p$jsbaseclassmangled != NULL) {
-      $jsmangledname_objectDefinition.parentClass = (JSClassRef) SWIGTYPE_p$jsbaseclassmangled->clientdata;
-    }
-%}
+%{ auto* cls = se::Class::create("$jsname", obj, __jsb$jsbaseclassmangled_proto, $jsctor); %}
 
 %fragment ("jsc_class_noinherit", templates)
-%{
-    $jsmangledname_objectDefinition.parentClass = _SwigObject_classRef;
-%}
-
+%{ auto* cls = se::Class::create("$jsname", obj, nullptr, $jsctor); %}
 
 /* -----------------------------------------------------------------------------
  * jsc_register_class:  template for registration of a class
@@ -361,9 +363,7 @@ static JSStaticFunction $jsmangledname_functions[] = {
  *   - $jsnspace:                 mangled name of namespace
  * ----------------------------------------------------------------------------- */
 %fragment ("jsc_class_registration", "templates")
-%{
-  JS_registerClass(context, $jsnspace_object, "$jsname", &$jsmangledname_classDefinition);
-%}
+%{ js_register$jsmangledname(ns); %}
 
 
 /* -----------------------------------------------------------------------------

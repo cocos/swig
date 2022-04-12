@@ -45,7 +45,9 @@ static bool js_template_enable_debug = false;
 
 // keys for global state variables
 #define CREATE_NAMESPACES "create_namespaces"
+#define REGISTER_CLASSES "register_classes"
 #define REGISTER_NAMESPACES "register_namespaces"
+#define REGISTER_GLOBAL "register_global"
 #define INITIALIZER "initializer"
 
 // keys for class scoped state variables
@@ -2413,6 +2415,16 @@ void CocosEmitter::marshalInputArgs(Node *n, ParmList *parms, Wrapper *wrapper, 
       p = nextSibling(p);
     }
   }
+
+    /* Insert constraint checking code */
+    for (p = parms; p;) {
+      if ((tm = Getattr(p, "tmap:check"))) {
+        Printv(wrapper->code, tm, "\n", NIL);
+        p = Getattr(p, "tmap:check:next");
+      } else {
+        p = nextSibling(p);
+      }
+    }
 }
 
 int CocosEmitter::initialize(Node *n) {
@@ -2437,6 +2449,8 @@ int CocosEmitter::initialize(Node *n) {
   state.globals(CREATE_NAMESPACES, NewString(""));
   state.globals(REGISTER_NAMESPACES, NewString(""));
   state.globals(INITIALIZER, NewString(""));
+  state.globals(REGISTER_CLASSES, NewString(""));
+  state.globals(REGISTER_GLOBAL, NewString(""));
 
   /* Register file targets with the SWIG file handler */
   Swig_register_filebyname("begin", f_wrap_cpp);
@@ -2454,7 +2468,7 @@ int CocosEmitter::dump(Node *n) {
   /* Get the module name */
   String *module = Getattr(n, "name");
 
-//cjh  Template initializer_define(getTemplate("js_initializer_define"));
+//  Template initializer_define(getTemplate("js_initializer_define"));
 //  initializer_define.replace("$jsname", module).pretty_print(f_header);
 
 //cjh  SwigType_emit_type_table(f_runtime, f_wrappers);
@@ -2466,12 +2480,12 @@ int CocosEmitter::dump(Node *n) {
   emitNamespaces();
 
   // compose the initializer function using a template
-//cjh  Template initializer(getTemplate("js_initializer"));
-//  initializer.replace("$jsname", module)
-//      .replace("$jsregisterclasses", state.globals(INITIALIZER))
-//      .replace("$jscreatenamespaces", state.globals(CREATE_NAMESPACES))
-//      .replace("$jsregisternamespaces", state.globals(REGISTER_NAMESPACES))
-//      .pretty_print(f_init);
+  Template initializer(getTemplate("js_initializer"));
+  initializer.replace("$jsname", module)
+      .replace("$jsregisterclasses", state.globals(REGISTER_CLASSES))
+      .replace("$jscreatenamespaces", state.globals(CREATE_NAMESPACES))
+      .replace("$jsregisternamespaces", state.globals(REGISTER_NAMESPACES))
+      .pretty_print(f_init);
 
   Printv(f_wrap_cpp, f_init, 0);
 
@@ -2496,7 +2510,7 @@ int CocosEmitter::enterFunction(Node *n) {
 }
 
 int CocosEmitter::exitFunction(Node *n) {
-  Template t_function = getTemplate("jsc_function_declaration");
+
 
   bool is_member = GetFlag(n, "ismember") != 0 || GetFlag(n, "feature:extend") != 0;
   bool is_overloaded = GetFlag(n, "sym:overloaded") != 0;
@@ -2513,12 +2527,17 @@ int CocosEmitter::exitFunction(Node *n) {
     }
   }
 
-  t_function.replace("$jsname", state.function(NAME))
+    Template t_function = getTemplate("jsc_function_declaration");
+    t_function.replace("$jsname", state.function(NAME))
       .replace("$jswrapper", state.function(WRAPPER_NAME));
 
   if (is_member) {
     if (GetFlag(state.function(), IS_STATIC)) {
-      t_function.pretty_print(state.clazz(STATIC_FUNCTIONS));
+        Template t_static_function = getTemplate("jsc_static_function_declaration");
+        t_static_function.replace("$jsname", state.function(NAME))
+          .replace("$jswrapper", state.function(WRAPPER_NAME));
+
+        t_static_function.pretty_print(state.clazz(STATIC_FUNCTIONS));
     } else {
       t_function.pretty_print(state.clazz(MEMBER_FUNCTIONS));
     }
@@ -2545,7 +2564,13 @@ int CocosEmitter::exitVariable(Node *n) {
   if (GetFlag(n, "ismember")) {
     if (GetFlag(state.variable(), IS_STATIC)
     || Equal(Getattr(n, "nodeType"), "enumitem")) {
-      t_variable.pretty_print(state.clazz(STATIC_VARIABLES));
+
+        Template t_static_variable(getTemplate("jsc_static_variable_declaration"));
+        t_static_variable.replace("$jsname", state.variable(NAME))
+            .replace("$jsgetter", state.variable(GETTER))
+            .replace("$jssetter", state.variable(SETTER));
+
+        t_static_variable.pretty_print(state.clazz(STATIC_VARIABLES));
     } else {
       t_variable.pretty_print(state.clazz(MEMBER_VARIABLES));
     }
@@ -2573,13 +2598,7 @@ int CocosEmitter::enterClass(Node *n) {
 }
 
 int CocosEmitter::exitClass(Node *n) {
-  Template t_class_tables(getTemplate("jsc_class_tables"));
-  t_class_tables.replace("$jsmangledname", state.clazz(NAME_MANGLED))
-      .replace("$jsclassvariables", state.clazz(MEMBER_VARIABLES))
-      .replace("$jsclassfunctions", state.clazz(MEMBER_FUNCTIONS))
-      .replace("$jsstaticclassfunctions", state.clazz(STATIC_FUNCTIONS))
-      .replace("$jsstaticclassvariables", state.clazz(STATIC_VARIABLES))
-      .pretty_print(f_wrappers);
+    Clear(state.globals(INITIALIZER));
 
   /* adds the ctor wrappers at this position */
   // Note: this is necessary to avoid extra forward declarations.
@@ -2600,33 +2619,49 @@ int CocosEmitter::exitClass(Node *n) {
   String *jsclass_inheritance = NewString("");
   Node *base_class = getBaseClass(n);
   if (base_class != NULL) {
+    String* baseClassNameMangled = SwigType_manglestr(Getattr(base_class, "name"));
     Template t_inherit(getTemplate("jsc_class_inherit"));
     t_inherit.replace("$jsmangledname", state.clazz(NAME_MANGLED))
-    .replace("$jsbaseclassmangled", SwigType_manglestr(Getattr(base_class, "name")))
-    .pretty_print(jsclass_inheritance);
+          .replace("$jsname", state.clazz(NAME))
+          .replace("$jsctor", state.clazz(CTOR))
+          .replace("$jsbaseclassmangled", baseClassNameMangled)
+          .pretty_print(jsclass_inheritance);
   } else {
     Template t_inherit(getTemplate("jsc_class_noinherit"));
     t_inherit.replace("$jsmangledname", state.clazz(NAME_MANGLED))
-    .pretty_print(jsclass_inheritance);
+          .replace("$jsname", state.clazz(NAME))
+          .replace("$jsctor", state.clazz(CTOR))
+          .pretty_print(jsclass_inheritance);
   }
 
   t_classtemplate.replace("$jsmangledname", state.clazz(NAME_MANGLED))
+      .replace("$jsclassname", Getattr(n, "name"))
+      .replace("$jsname", state.clazz(NAME))
       .replace("$jsmangledtype", state.clazz(TYPE_MANGLED))
       .replace("$jsclass_inheritance", jsclass_inheritance)
       .replace("$jsctor", state.clazz(CTOR))
       .replace("$jsdtor", state.clazz(DTOR))
+      .replace("$jsnspace", Getattr(state.clazz("nspace"), NAME_MANGLED))
+
+     .replace("$jsclassvariables", state.clazz(MEMBER_VARIABLES))
+     .replace("$jsclassfunctions", state.clazz(MEMBER_FUNCTIONS))
+     .replace("$jsstaticclassfunctions", state.clazz(STATIC_FUNCTIONS))
+     .replace("$jsstaticclassvariables", state.clazz(STATIC_VARIABLES))
+
       .pretty_print(state.globals(INITIALIZER));
   Delete(jsclass_inheritance);
 
   /* Note: this makes sure that there is a swig_type added for this class */
   SwigType_remember_clientdata(state.clazz(TYPE_MANGLED), NewString("0"));
 
+  Printv(f_wrappers, state.globals(INITIALIZER), 0);//cjh added
+
   /* adds a class registration statement to initializer function */
   Template t_registerclass(getTemplate("jsc_class_registration"));
   t_registerclass.replace("$jsname", state.clazz(NAME))
       .replace("$jsmangledname", state.clazz(NAME_MANGLED))
       .replace("$jsnspace", Getattr(state.clazz("nspace"), NAME_MANGLED))
-      .pretty_print(state.globals(INITIALIZER));
+      .pretty_print(state.globals(REGISTER_CLASSES));
 
   return SWIG_OK;
 }

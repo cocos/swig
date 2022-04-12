@@ -1,62 +1,38 @@
+%include "Shape.h"
+
 /* File : example.h */
 namespace cc {
 
-struct SomeObject { 
-  float value[100];
-};
 
-class Shape {
+
+#define UP 1
+#define DOWN 2 
+#define RIGHT 3 
+#define LEFT 4
+
+int check_direction(int x);
+
+%aggregate_check(int, check_direction, UP, DOWN, RIGHT, LEFT);
+
+%contract globalMove(SomeObject *, int, int) { 
+require:
+  check_direction(direction); 
+}
+
+void globalMove(SomeObject *, int direction, int distance);
+
+double sqrtAAA(double posdouble);
+
+
+
+class Circle : public Shape {
+private:
+  double radius;
 public:
-  
-
-  Shape() {
-    nshapes++;
-  }
-  Shape(int shapes) {
-    nshapes = shapes;
-  }
-  Shape(float* p) {
-
-  }
-
-  Shape(Shape* p) {
-
-  }
-  virtual ~Shape() {
-    nshapes--;
-  }
-  // double  x, y;   
-  void    move(double dx, double dy);
-  void move(bool doMove);
-
-  int hello(int a);
-
-  Shape* addChild(Shape* child);
-
-  void setName(const char* name, char* prettyName);
-  void setNameHaha2(char* name);
-
-  void setInt(int positive);
-
-  void testOut(int* out);
-  void testMallocFree(int *items);
-  void doSomeObject(SomeObject);
-
-
-  static bool staticHello(float a);
-  // virtual double area() = 0;
-  // virtual double perimeter() = 0;
-  static  int nshapes;
+  Circle(double r) : radius(r) { }
+  double area() override;
+  double perimeter() override;
 };
-
-// class Circle : public Shape {
-// private:
-//   double radius;
-// public:
-//   Circle(double r) : radius(r) { }
-//   virtual double area();
-//   virtual double perimeter();
-// };
 
 
 
@@ -65,20 +41,22 @@ public:
 // typedef const char * Literal;
 // Literal y; // type = 'Literal', ltype='p.char'
 
-// class Square : public Shape {
-// private:
-//   double width;
-// public:
+class Square : public Shape {
+private:
+  double width;
+public:
 
-//   int *axx[30];
-//   %rename(area_renamed) area;
+  Square(double w) : width(w) { }
+  double area() override;
+  double perimeter() override;
+  void helloWorld(int aaa, bool isXXX, float    floatValue, MyType* myTypePtr);
+  void helloWorld(bool);
+  void testArr(vector<MyType>& myVec);
 
-//   Square(double w) : width(w) { }
-//   virtual double area();
-//   virtual double perimeter();
-//   void helloWorld(int aaa, bool isXXX, float    floatValue, MyType* myTypePtr);
-//   void helloWorld(bool);
-//   void testArr(vector<MyType>& myVec);
-// };
+  int mPublicInt;
+  static float sPublicFloat;
+
+  static void staticFoo();
+};
 
 }
