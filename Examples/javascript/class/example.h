@@ -1,7 +1,7 @@
-%include "Shape.h"
+
 
 /* File : example.h */
-namespace cc {
+namespace cc { namespace gfx {
 
 
 
@@ -30,6 +30,7 @@ private:
   double radius;
 public:
   Circle(double r) : radius(r) { }
+
   double area() override;
   double perimeter() override;
 };
@@ -59,4 +60,4 @@ public:
   static void staticFoo();
 };
 
-}
+}}

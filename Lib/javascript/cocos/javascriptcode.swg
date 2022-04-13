@@ -25,8 +25,7 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
     s.thisObject()->setPrivateObject(ptr);
     return true;
 }
-SE_BIND_CTOR($jswrapper)
-%}
+SE_BIND_CTOR($jswrapper) %}
 
 /* -----------------------------------------------------------------------------
  * js_veto_ctor:  a vetoing ctor for abstract classes
@@ -42,8 +41,7 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
 fail:
     return 0;
 }
-SE_BIND_CTOR($jswrapper)
-%}
+SE_BIND_CTOR($jswrapper) %}
 
 /* -----------------------------------------------------------------------------
  * js_ctor_dispatcher:  dispatcher for overloaded constructors
@@ -66,8 +64,7 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
     SE_REPORT_ERROR("Illegal arguments for construction of $jsname");
     return false;
 }
-SE_BIND_CTOR($jswrapper, __jsb$jsmangledname_class, _wrap_delete_$jsname)
-%}
+SE_BIND_CTOR($jswrapper, __jsb$jsmangledname_class, _wrap_delete_$jsname) %}
 
 /* -----------------------------------------------------------------------------
  * js_overloaded_ctor:  template for wrapping a ctor.
@@ -116,12 +113,10 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
 %fragment ("js_dtor", "templates")
 %{
 // js_dtor
-static bool $jswrapper(se::State& s)
-{
+static bool $jswrapper(se::State& s) {
   return true;
 }
-SE_BIND_FINALIZE_FUNC($jswrapper)
-%}
+SE_BIND_FINALIZE_FUNC($jswrapper) %}
 
 /* -----------------------------------------------------------------------------
  * js_dtor:  template for a destructor wrapper
@@ -132,12 +127,10 @@ SE_BIND_FINALIZE_FUNC($jswrapper)
 %fragment ("js_dtoroverride", "templates")
 %{
 static void $jswrapper(JSObjectRef thisObject)
-{
-// js_dtoroverride
+{// js_dtoroverride
   return true;
 }
-SE_BIND_FINALIZE_FUNC($jswrapper)
-%}
+SE_BIND_FINALIZE_FUNC($jswrapper) %}
 
 /* -----------------------------------------------------------------------------
  * js_getter:  template for getter function wrappers
@@ -147,13 +140,14 @@ SE_BIND_FINALIZE_FUNC($jswrapper)
  * ----------------------------------------------------------------------------- */
 %fragment ("js_getter", "templates")
 %{
-static JSValueRef $jswrapper(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef* exception)
+static bool $jswrapper(se::State& s)
 {
+    bool ok = true;
     $jslocals
     $jscode
-    return jsresult;
+    return true;
 }
-%}
+SE_BIND_PROP_GET($jswrapper) %}
 
 /* -----------------------------------------------------------------------------
  * js_setter:  template for setter function wrappers
@@ -163,18 +157,14 @@ static JSValueRef $jswrapper(JSContextRef context, JSObjectRef thisObject, JSStr
  * ----------------------------------------------------------------------------- */
 %fragment ("js_setter", "templates")
 %{
-static bool $jswrapper(JSContextRef context, JSObjectRef thisObject, JSStringRef propertyName, JSValueRef value, JSValueRef* exception)
+static bool $jswrapper(se::State& s)
 {
+    bool ok = true;
     $jslocals
     $jscode
-
     return true;
-
-    goto fail;
-    fail:
-    return false;
 }
-%}
+SE_BIND_PROP_SET($jswrapper) %}
 
 /* -----------------------------------------------------------------------------
  * js_function:  template for function wrappers
@@ -191,17 +181,14 @@ static bool $jswrapper(se::State& s)
   const auto& args = s.args();
   size_t argc = args.size();
   $jslocals
-
   if(argc != $jsargcount) {
     SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, $jsargcount);
     return false;
   }
-
   $jscode
   return true;
 }
-SE_BIND_FUNC($jswrapper)
-%}
+SE_BIND_FUNC($jswrapper) %}
 
 /* -----------------------------------------------------------------------------
  * js_function_dispatcher:  template for a function dispatcher for overloaded functions
@@ -223,8 +210,7 @@ static bool $jswrapper(se::State& s)
   SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, $jsargcount);
   return false;
 }
-SE_BIND_FUNC($jswrapper)
-%}
+SE_BIND_FUNC($jswrapper) %}
 
 /* -----------------------------------------------------------------------------
  * js_overloaded_function:  template for a overloaded function
@@ -237,12 +223,10 @@ SE_BIND_FUNC($jswrapper)
 static bool $jswrapper(se::State& s)
 {// js_overloaded_function
   $jslocals
-
   $jscode
   *p_result = jsresult;
   return true;
-}
-%}
+}%}
 
 /* -----------------------------------------------------------------------------
  * js_function_dispatch_case:  template for a case used in the function dispatcher
@@ -255,8 +239,7 @@ static bool $jswrapper(se::State& s)
   if (argc == $jsargcount) {
      ok = $jswrapper(s);
      if (ok) { return true; }
-  }
-%}
+  } %}
 
 /* -----------------------------------------------------------------------------
  * jsc_variable_declaration:  template for a variable table entry
@@ -270,6 +253,8 @@ static bool $jswrapper(se::State& s)
 %fragment ("jsc_static_variable_declaration", "templates")
 %{ cls->defineStaticProperty("$jsname", _SE($jsgetter), _SE($jssetter)); %}
 
+%fragment ("jsc_global_variable_declaration", "templates")
+%{ ns->defineProperty("$jsname", _SE($jsgetter), _SE($jssetter)); %}
 
 /* -----------------------------------------------------------------------------
  * jsc_function_declaration:  template for a function table entry
@@ -282,6 +267,9 @@ static bool $jswrapper(se::State& s)
 %fragment ("jsc_static_function_declaration", "templates")
 %{ cls->defineStaticFunction("$jsname", _SE($jswrapper)); %}
 
+%fragment ("jsc_global_function_declaration", "templates")
+%{ ns->defineFunction("$jsname", _SE($jswrapper)); %}
+
 /* -----------------------------------------------------------------------------
  * jsc_classtemplate_declaration:  template for a namespace declaration
  *   - $jsmangledname:      mangled class name
@@ -290,39 +278,7 @@ static bool $jswrapper(se::State& s)
 %{
 se::Class* __jsb$jsmangledname_class;
 se::Object* __jsb$jsmangledname_proto;
-SE_DECLARE_FINALIZE_FUNC(_wrap_delete_$jsname)
-%}
-
-/* -----------------------------------------------------------------------------
- * jsc_class_tables:  template for a namespace declaration
- *   - $jsmangledname:            mangled class name
- *   - $jsstaticclassvariables:   list of static variable entries
- *   - $jsstaticclassfunctions:   list of static function entries
- *   - $jsclassvariables:         list of member variable entries
- *   - $jsclassfunctions:         list of member function entries
- * ----------------------------------------------------------------------------- */
-%fragment ("jsc_class_tables", "templates")
-%{
-static JSStaticValue $jsmangledname_staticValues[] = {
-  $jsstaticclassvariables
-  { 0, 0, 0, 0 }
-};
-
-static JSStaticFunction $jsmangledname_staticFunctions[] = {
-  $jsstaticclassfunctions
-  { 0, 0, 0 }
-};
-
-static JSStaticValue $jsmangledname_values[] = {
-  $jsclassvariables
-  { 0, 0, 0, 0 }
-};
-
-static JSStaticFunction $jsmangledname_functions[] = {
-  $jsclassfunctions
-  { 0, 0, 0 }
-};
-%}
+SE_DECLARE_FINALIZE_FUNC(_wrap_delete_$jsname) %}
 
 /* -----------------------------------------------------------------------------
  * jsc_define_class_template:  template for defining a class template
@@ -333,25 +289,25 @@ static JSStaticFunction $jsmangledname_functions[] = {
  * ----------------------------------------------------------------------------- */
 %fragment ("jsc_class_definition", "templates")
 %{
-bool js_register$jsmangledname(se::Object* obj) {
-  $jsclass_inheritance
-  $jsclassvariables
-  $jsclassfunctions
-  $jsstaticclassvariables
-  $jsstaticclassfunctions
-  cls->defineFinalizeFunction(_SE($jsdtor));
-  cls->install();
-  JSBClassType::registerClass<$jsclassname>(cls);
+bool js_register_$jsmangledname(se::Object* obj) {
+    $jsclass_inheritance
+    $jsclassvariables
+    $jsclassfunctions
+    $jsstaticclassvariables
+    $jsstaticclassfunctions
+    cls->defineFinalizeFunction(_SE($jsdtor));
+    cls->install();
+    JSBClassType::registerClass<$jsclassname>(cls);
 
-  __jsb$jsmangledname_proto = cls->getProto();
-  __jsb$jsmangledname_class = cls;
-  se::ScriptEngine::getInstance()->clearException();
-  return true;
+    __jsb_$jsmangledname_proto = cls->getProto();
+    __jsb_$jsmangledname_class = cls;
+    se::ScriptEngine::getInstance()->clearException();
+    return true;
 }
 %}
 
 %fragment ("jsc_class_inherit", templates)
-%{ auto* cls = se::Class::create("$jsname", obj, __jsb$jsbaseclassmangled_proto, $jsctor); %}
+%{ auto* cls = se::Class::create("$jsname", obj, __jsb_$jsbaseclassmangled_proto, $jsctor); %}
 
 %fragment ("jsc_class_noinherit", templates)
 %{ auto* cls = se::Class::create("$jsname", obj, nullptr, $jsctor); %}
@@ -363,49 +319,14 @@ bool js_register$jsmangledname(se::Object* obj) {
  *   - $jsnspace:                 mangled name of namespace
  * ----------------------------------------------------------------------------- */
 %fragment ("jsc_class_registration", "templates")
-%{ js_register$jsmangledname(ns); %}
+%{ js_register_$jsmangledname(ns); %}
 
-
-/* -----------------------------------------------------------------------------
- * jsc_nspace_declaration:  template for a namespace declaration
- *   - $jsnspace:           mangled name of the namespace
- *   - $jsglobalvariables:  list of variable entries
- *   - $jsglobalfunctions:  list of function entries
- * ----------------------------------------------------------------------------- */
-%fragment ("jsc_nspace_declaration", "templates")
-%{
-static JSStaticValue $jsnspace_values[] = {
-  $jsglobalvariables
-  { 0, 0, 0, 0 }
-};
-
-static JSStaticFunction $jsnspace_functions[] = {
-  $jsglobalfunctions
-  { 0, 0, 0 }
-};
-
-static JSClassDefinition $jsnspace_classDefinition;
-static JSObjectRef $jsmangledname_object;
-%}
 
 /* -----------------------------------------------------------------------------
  * jsc_nspace_definition:  template for definition of a namespace object
  *   - $jsmangledname:            mangled name of namespace
  * ----------------------------------------------------------------------------- */
-%fragment ("jsc_nspace_definition", "templates")
-%{
-  $jsmangledname_classDefinition.staticFunctions = $jsmangledname_functions;
-  $jsmangledname_classDefinition.staticValues = $jsmangledname_values;
-  $jsmangledname_object = JSObjectMake(context, JSClassCreate(&$jsmangledname_classDefinition), NULL);
-%}
+%fragment ("jsc_global_registration", "templates")
+%{$jsglobalvariables
+  $jsglobalfunctions %}
 
-/* -----------------------------------------------------------------------------
- * jsc_nspace_registration:  template for registration of a namespace object
- *   - $jsname:                   name of namespace
- *   - $jsmangledname:            mangled name of namespace
- *   - $jsparent:                 mangled name of parent namespace
- * ----------------------------------------------------------------------------- */
-%fragment ("jsc_nspace_registration", "templates")
-%{
-  JS_registerNamespace(context, $jsmangledname_object, $jsparent_object, "$jsname");
-%}

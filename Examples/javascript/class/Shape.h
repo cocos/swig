@@ -2,7 +2,7 @@ struct SomeObject {
   float value[100];
 };
 
-namespace  cc {
+namespace  cc { namespace gfx {
 
 class Shape {
 public:
@@ -31,6 +31,7 @@ public:
   int hello(int a);
 
   Shape* addChild(Shape* child);
+  Shape* const & getChild() const;
 
   void setName(const char* name, char* prettyName);
   void setNameHaha2(char* name);
@@ -50,4 +51,4 @@ public:
   static  int nshapes;
 };
 
-}
+}}

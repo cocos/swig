@@ -32,6 +32,7 @@ extern "C" {
   Language *swig_guile(void);
   Language *swig_java(void);
   Language *swig_javascript(void);
+  Language *swig_cocos(void);
   Language *swig_lua(void);
   Language *swig_mzscheme(void);
   Language *swig_ocaml(void);
@@ -61,6 +62,7 @@ static TargetLanguageModule modules[] = {
   {"-guile", swig_guile, "Guile", Supported},
   {"-java", swig_java, "Java", Supported},
   {"-javascript", swig_javascript, "Javascript", Supported},
+  {"-cocos", swig_cocos, "Cocos", Supported},
   {"-lua", swig_lua, "Lua", Supported},
   {"-modula3", NULL, "Modula 3", Disabled},
   {"-mzscheme", swig_mzscheme, "MzScheme/Racket", Experimental},

@@ -660,6 +660,8 @@ namespace std {
  * known as the "Fulton Transform" :-).
  */
 
+#ifndef SWIG_JAVASCRIPT_COCOS
+
 #ifdef __cplusplus
 %insert("runtime") %{
 #ifdef __cplusplus
@@ -701,4 +703,4 @@ template <typename T> T SwigValueInit() {
 
 %insert("runtime") "swiglabels.swg"
 
-
+#endif // #ifndef SWIG_JAVASCRIPT_COCOS

@@ -6,8 +6,7 @@
 
 %insert(runtime) %{
 #include "bindings/jswrapper/SeApi.h"
-#include "bindings/bindings/manual/jsb_conversions.h"
-%}
+#include "bindings/bindings/manual/jsb_conversions.h" %}
 
 //cjh %insert(runtime) "swigrun.swg";         /* SWIG API */
 //cjh %insert(runtime) "swigerrors.swg";      /* SWIG errors */

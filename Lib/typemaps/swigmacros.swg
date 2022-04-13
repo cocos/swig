@@ -109,6 +109,7 @@ nocppval
 #endif
 %enddef
 
+#ifndef SWIG_JAVASCRIPT_COCOS
 /* insert the SWIGVERSION in the interface and the wrapper code */
 #if SWIG_VERSION
 %insert("header") {
@@ -116,7 +117,7 @@ nocppval
 %#define SWIG_VERSION SWIGVERSION
 }
 #endif
-
+#endif // #ifndef SWIG_JAVASCRIPT_COCOS
 
 
 /* -----------------------------------------------------------------------------
@@ -139,11 +140,12 @@ nocppval
 #define %as_voidptr(a)               SWIG_as_voidptr(a)
 #define %as_voidptrptr(a)            SWIG_as_voidptrptr(a)
 
+#ifndef SWIG_JAVASCRIPT_COCOS
 %insert("header") {
 %define_as(SWIG_as_voidptr(a),    %const_cast(%static_cast(a,const void *), void *))
 %define_as(SWIG_as_voidptrptr(a), ((void)%as_voidptr(*a),%reinterpret_cast(a, void**)))
 }
-
+#endif // SWIG_JAVASCRIPT_COCOS
 
 /* -----------------------------------------------------------------------------
  * Allocating/freeing elements

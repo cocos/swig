@@ -104,8 +104,9 @@ free($1); }
 
 %typemap(in,checkfn="lua_isnumber") int, short, long,
              signed char, float, double
-%{ ok &= sevalue_to_native<$type>($input, &$1, nullptr);
-   SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor"); %}
+%{ 
+  ok &= sevalue_to_native<$type>($input, &$1, nullptr);
+  SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor"); %}
  
 // additional check for unsigned numbers, to not permit negative input
 %typemap(in,checkfn="lua_isnumber") unsigned int,
@@ -117,7 +118,7 @@ $1 = ($type)lua_tonumber(L, $input);%}
              unsigned int,unsigned short,unsigned long,
              signed char,unsigned char,
              float,double
-%{ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);%}
+%{ ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/); %}
 
 // we must also provide typemaps for primitives by const reference:
 // given a function:
@@ -180,23 +181,14 @@ temp=($*1_ltype)lua_tonumber(L,$input); $1=&temp;%}
 %{  lua_pushboolean(L,(int)((*$1)!=0)); SWIG_arg++;%}
 
 // strings (char * and char[])
-%fragment("SWIG_lua_isnilstring", "header") {
-SWIGINTERN int SWIG_lua_isnilstring(lua_State *L, int idx) {
-  int ret = lua_isstring(L, idx);
-  if (!ret)
-   ret = lua_isnil(L, idx);
-  return ret;
-}
-}
 
-%typemap(in,checkfn="SWIG_lua_isnilstring",fragment="SWIG_lua_isnilstring") const char * (std::string temp), char * (std::string temp)
-%{
-ok &= sevalue_to_native($input, &temp);
-SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");
-$1 = temp.c_str();
-%}
+%typemap(in) const char * (std::string temp), char * (std::string temp)
+%{ 
+   ok &= sevalue_to_native($input, &temp);
+   SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");
+   $1 = temp.c_str(); %}
 
-%typemap(in,checkfn="SWIG_lua_isnilstring",fragment="SWIG_lua_isnilstring") const char[ANY], char[ANY]
+%typemap(in) const char[ANY], char[ANY]
 %{$1 = ($ltype)lua_tostring(L, $input);%}
 
 %typemap(out) const char *, char *
@@ -208,14 +200,14 @@ $1 = temp.c_str();
 // char's
 // currently treating chars as small strings, not as numbers
 // (however signed & unsigned char's are numbers...)
-%typemap(in,checkfn="SWIG_lua_isnilstring",fragment="SWIG_lua_isnilstring") char
+%typemap(in) char
 %{$1 = (lua_tostring(L, $input))[0];%}
 
 %typemap(out) char
 %{  lua_pushlstring(L, &$1, 1); SWIG_arg++;%}
 
 // by const ref
-%typemap(in,checkfn="SWIG_lua_isnilstring",fragment="SWIG_lua_isnilstring") const char& (char temp)
+%typemap(in) const char& (char temp)
 %{temp = (lua_tostring(L, $input))[0]; $1=&temp;%}
 
 %typemap(out) const char&
@@ -227,20 +219,19 @@ $1 = temp.c_str();
 // This will only be allowed for pointers & arrays, not refs or by value
 // the checkfn lua_isuserdata will only work for userdata
 // the checkfn SWIG_isptrtype will work for both userdata and nil
-%typemap(in,checkfn="SWIG_isptrtype") SWIGTYPE*,SWIGTYPE[]
-%{
-   ok &= sevalue_to_native($input, &$1, s.thisObject());
-   SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");
-%}
+%typemap(in) SWIGTYPE*,SWIGTYPE[]
+%{ 
+  ok &= sevalue_to_native($input, &$1, s.thisObject());
+  SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor"); %}
 
-%typemap(in,checkfn="lua_isuserdata") SWIGTYPE&
+%typemap(in) SWIGTYPE&
 %{
   if (!SWIG_IsOK(SWIG_ConvertPtr(L,$input,(void**)&$1,$descriptor,$disown))){
     SWIG_fail_ptr("$symname",$argnum,$descriptor);
   }
 %}
 
-%typemap(in,checkfn="lua_isuserdata") SWIGTYPE&&
+%typemap(in) SWIGTYPE&&
 %{
   if (!SWIG_IsOK(SWIG_ConvertPtr(L,$input,(void**)&$1,$descriptor,$disown))){
     SWIG_fail_ptr("$symname",$argnum,$descriptor);
@@ -249,16 +240,14 @@ $1 = temp.c_str();
 
 // out is simple
 %typemap(out) SWIGTYPE*,SWIGTYPE&
-%{
-  ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);
-  SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
-  SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval());%}
+%{  ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);
+    SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
+    SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval()); %}
 
 %typemap(out) SWIGTYPE*,SWIGTYPE&&
-%{
-  ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);
-  SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
-  SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval());%}
+%{ ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);
+   SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
+   SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval()); %}
 
 // dynamic casts
 // this uses the SWIG_TypeDynamicCast() which relies on RTTI to find out what the pointer really is
@@ -412,10 +401,9 @@ parameters match which function
   $1 = SWIG_lua_isnilstring(L,$input);
 }
 
-%typemap(in) SWIGTYPE *self %{
-  $1 = SE_THIS_OBJECT<$*ltype>(s);
-  SE_PRECONDITION2($1, false, "%s: Invalid Native Object", __FUNCTION__);
-%}
+%typemap(in) SWIGTYPE *self 
+%{ $1 = SE_THIS_OBJECT<$*ltype>(s);
+   SE_PRECONDITION2($1, false, "%s: Invalid Native Object", __FUNCTION__); %}
 
 %typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE *, SWIGTYPE [] {
   void *ptr;
@@ -504,11 +492,11 @@ parameters match which function
 %ignore swig::LANGUAGE_OBJ;
 
 //%inline %{
-%{
-namespace swig {
-typedef struct{} LANGUAGE_OBJ;
-}
-%}
+// %{
+// namespace swig {
+// typedef struct{} LANGUAGE_OBJ;
+// }
+// %}
 
 #endif // __cplusplus
 

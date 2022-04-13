@@ -133,6 +133,13 @@ file (GLOB CORE_SOURCES ${SWIG_SOURCE_DIR}/Swig/*.c)
 file (GLOB DOXYGEN_SOURCES ${SWIG_SOURCE_DIR}/Doxygen/*.cxx)
 file (GLOB MODULES_SOURCES ${SWIG_SOURCE_DIR}/Modules/*.cxx)
 
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${DOH_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${CPARSE_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${PREPROCESSOR_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${CORE_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${DOXYGEN_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${MODULES_SOURCES})
+
 add_executable (swig
   ${CPARSE_SOURCES}
   ${DOH_SOURCES}
@@ -140,10 +147,10 @@ add_executable (swig
   ${MODULES_SOURCES}
   ${CORE_SOURCES}
   ${PREPROCESSOR_SOURCES}
-  ${PROJECT_BINARY_DIR}/Source/Include/swigconfig.h
-  ${SWIG_SOURCE_DIR}/Include/swigwarn.h
-  ${PROJECT_BINARY_DIR}/Source/CParse/parser.c
-  ${PROJECT_BINARY_DIR}/Source/CParse/parser.h
+  # ${PROJECT_BINARY_DIR}/Source/Include/swigconfig.h
+  # ${SWIG_SOURCE_DIR}/Include/swigwarn.h
+  # ${PROJECT_BINARY_DIR}/Source/CParse/parser.c
+  # ${PROJECT_BINARY_DIR}/Source/CParse/parser.h
 )
 if (PCRE2_FOUND)
   target_link_libraries (swig ${PCRE2_LIBRARIES})
