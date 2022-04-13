@@ -3,9 +3,9 @@
 BasedOnStyle:                         Google
 
 AccessModifierOffset:                 -4
-AlignConsecutiveMacros:               true
-AlignConsecutiveAssignments:          true
-AlignConsecutiveDeclarations:         true
+# AlignConsecutiveMacros:               true
+# AlignConsecutiveAssignments:          true
+# AlignConsecutiveDeclarations:         true
 AllowShortCaseLabelsOnASingleLine:    true
 ColumnLimit:                          0
 ConstructorInitializerIndentWidth:    0

@@ -6,6 +6,13 @@ endif ()
 
 project (swig)
 
+# set c++ standard
+set(CMAKE_C_STANDARD 99)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_STANDARD 14)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
 if (POLICY CMP0074)
   cmake_policy (SET CMP0074 NEW)
 endif()

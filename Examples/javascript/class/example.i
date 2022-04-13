@@ -42,10 +42,3 @@ Vector *new_Vector() {
 }
 %}
 
-%init %{ 
-    init_variables222();
-%}
-
-%init %{ 
-    init_variables();
-%}
