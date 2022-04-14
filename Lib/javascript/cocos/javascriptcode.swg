@@ -276,9 +276,9 @@ static bool $jswrapper(se::State& s)
  * ----------------------------------------------------------------------------- */
 %fragment ("jsc_class_declaration", "templates")
 %{
-se::Class* __jsb$jsmangledname_class;
-se::Object* __jsb$jsmangledname_proto;
-SE_DECLARE_FINALIZE_FUNC(_wrap_delete_$jsname) %}
+se::Class* __jsb_$jsmangledname_class;
+se::Object* __jsb_$jsmangledname_proto;
+SE_DECLARE_FINALIZE_FUNC(js_delete_$jsname) %}
 
 /* -----------------------------------------------------------------------------
  * jsc_define_class_template:  template for defining a class template

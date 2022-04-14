@@ -132,19 +132,20 @@ install (FILES ${CMAKE_CURRENT_BINARY_DIR}/swigwarn.swg DESTINATION ${SWIG_LIB})
 
 # sources
 # ---------
-file (GLOB DOH_SOURCES ${SWIG_SOURCE_DIR}/DOH/*.c)
-file (GLOB CPARSE_SOURCES ${SWIG_SOURCE_DIR}/CParse/*.c)
+file (GLOB DOH_SOURCES ${SWIG_SOURCE_DIR}/DOH/*.c ${SWIG_SOURCE_DIR}/DOH/*.h)
+file (GLOB CPARSE_SOURCES ${SWIG_SOURCE_DIR}/CParse/*.c ${SWIG_SOURCE_DIR}/CParse/*.h)
 list (APPEND CPARSE_SOURCES)
-file (GLOB PREPROCESSOR_SOURCES ${SWIG_SOURCE_DIR}/Preprocessor/*.c)
-file (GLOB CORE_SOURCES ${SWIG_SOURCE_DIR}/Swig/*.c)
-file (GLOB DOXYGEN_SOURCES ${SWIG_SOURCE_DIR}/Doxygen/*.cxx)
-file (GLOB MODULES_SOURCES ${SWIG_SOURCE_DIR}/Modules/*.cxx)
+file (GLOB PREPROCESSOR_SOURCES ${SWIG_SOURCE_DIR}/Preprocessor/*.c ${SWIG_SOURCE_DIR}/Preprocessor/*.h)
+file (GLOB CORE_SOURCES ${SWIG_SOURCE_DIR}/Swig/*.c ${SWIG_SOURCE_DIR}/Swig/*.h)
+file (GLOB DOXYGEN_SOURCES ${SWIG_SOURCE_DIR}/Doxygen/*.cxx ${SWIG_SOURCE_DIR}/Doxygen/*.h)
+file (GLOB MODULES_SOURCES ${SWIG_SOURCE_DIR}/Modules/*.cxx ${SWIG_SOURCE_DIR}/Modules/*.h)
 
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${DOH_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${CPARSE_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${PREPROCESSOR_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${CORE_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${DOXYGEN_SOURCES})
+source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${MODULES_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${MODULES_SOURCES})
 
 add_executable (swig
@@ -154,10 +155,10 @@ add_executable (swig
   ${MODULES_SOURCES}
   ${CORE_SOURCES}
   ${PREPROCESSOR_SOURCES}
-  # ${PROJECT_BINARY_DIR}/Source/Include/swigconfig.h
-  # ${SWIG_SOURCE_DIR}/Include/swigwarn.h
-  # ${PROJECT_BINARY_DIR}/Source/CParse/parser.c
-  # ${PROJECT_BINARY_DIR}/Source/CParse/parser.h
+  ${PROJECT_BINARY_DIR}/Source/Include/swigconfig.h
+  ${SWIG_SOURCE_DIR}/Include/swigwarn.h
+  ${PROJECT_BINARY_DIR}/Source/CParse/parser.c
+  ${PROJECT_BINARY_DIR}/Source/CParse/parser.h
 )
 if (PCRE2_FOUND)
   target_link_libraries (swig ${PCRE2_LIBRARIES})

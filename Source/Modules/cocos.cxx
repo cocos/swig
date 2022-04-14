@@ -51,6 +51,8 @@ static bool js_template_enable_debug = false;
 #define REGISTER_NAMESPACES "register_namespaces"
 #define REGISTER_GLOBAL "register_global"
 #define INITIALIZER "initializer"
+#define HEADER_REGISTER_MODULE "header_register_module"
+#define HEADER_REGISTER_CLASSES "header_register_classes"
 
 // keys for class scoped state variables
 #define MEMBER_VARIABLES "member_variables"
@@ -1123,8 +1125,20 @@ int JSEmitter::emitFunction(Node *n, bool is_member, bool is_static) {
     bool is_overloaded = GetFlag(n, "sym:overloaded") != 0;
 
     // prepare the function wrapper name
-    String *iname = Getattr(n, "sym:name");
+    String *iname = Copy(Getattr(n, "name"));
+
+    if (is_member) {
+        Node *parentNode = Getattr(n, "parentNode");
+        if (parentNode != nullptr) {
+            Insert(iname, 0, "::");
+            Insert(iname, 0, Getattr(parentNode, "name"));
+
+        }
+    }
+
+    Replaceall(iname, "::", "_");
     String *wrap_name = Swig_name_wrapper(iname);
+
     if (is_overloaded) {
         t_function = getTemplate("js_overloaded_function");
         Append(wrap_name, Getattr(n, "sym:overname"));
@@ -1155,6 +1169,9 @@ int JSEmitter::emitFunction(Node *n, bool is_member, bool is_static) {
         .pretty_print(f_wrappers);
 
     DelWrapper(wrapper);
+
+    Delete(iname);
+    Delete(wrap_name);
 
     return SWIG_OK;
 }
@@ -1198,22 +1215,20 @@ int JSEmitter::emitFunctionDispatcher(Node *n, bool /*is_member */) {
     int l2 = Len(overname);
     Delslice(wrap_name, l1 - l2, l1);
 
-    String *new_string = NewStringf("%s_%s", class_name, wrap_name);
-    String *final_wrap_name = Swig_name_wrapper(new_string);
-
-    Setattr(n, "wrap:name", final_wrap_name);
-    state.function(WRAPPER_NAME, final_wrap_name);
+    Setattr(n, "wrap:name", wrap_name);
+    state.function(WRAPPER_NAME, wrap_name);
 
     t_function.replace("$jslocals", wrapper->locals)
         .replace("$jscode", wrapper->code);
 
     // call this here, to replace all variables
-    t_function.replace("$jswrapper", final_wrap_name)
+    t_function.replace("$jswrapper", wrap_name)
         .replace("$jsname", state.function(NAME))
         .pretty_print(f_wrappers);
 
     // Delete the state variable
     DelWrapper(wrapper);
+    Delete(wrap_name);
 
     return SWIG_OK;
 }
@@ -1526,6 +1541,8 @@ void CocosEmitter::marshalInputArgs(Node *n, ParmList *parms, Wrapper *wrapper, 
 int CocosEmitter::initialize(Node *n) {
     JSEmitter::initialize(n);
 
+    Swig_name_register("wrapper", "js_%f");
+
     /* Get the output file name */
     String *outfile = Getattr(n, "outfile");
     String *outfile_h = Getattr(n, "outfile_h");
@@ -1553,6 +1570,8 @@ int CocosEmitter::initialize(Node *n) {
     state.globals(INITIALIZER, NewString(""));
     state.globals(REGISTER_CLASSES, NewString(""));
     state.globals(REGISTER_GLOBAL, NewString(""));
+    state.globals(HEADER_REGISTER_MODULE, NewString(""));
+    state.globals(HEADER_REGISTER_CLASSES, NewString(""));
 
     /* Register file targets with the SWIG file handler */
     Swig_register_filebyname("begin", f_wrap_cpp);
@@ -1579,6 +1598,7 @@ int CocosEmitter::dump(Node *n) {
     Printv(f_wrap_cpp, f_runtime, "\n", 0);
     Printv(f_wrap_cpp, f_header, "\n", 0);
     Printv(f_wrap_cpp, f_wrappers, "\n", 0);
+    Printv(f_wrap_h, f_header, "\n", 0);
 
     emitNamespaces();
 
@@ -1590,6 +1610,12 @@ int CocosEmitter::dump(Node *n) {
         .pretty_print(f_init);
 
     Printv(f_wrap_cpp, f_init, 0);
+
+    {
+        Template template_module_declare(getTemplate("js_register_module_declare"));
+        template_module_declare.replace("$jsname", module)
+            .pretty_print(f_wrap_h);
+    }
 
     return SWIG_OK;
 }
@@ -1641,7 +1667,7 @@ int CocosEmitter::exitFunction(Node *n) {
             t_function.pretty_print(state.clazz(MEMBER_FUNCTIONS));
         }
     } else {
-        Template t_function = getTemplate("jsc_function_declaration");
+        Template t_function = getTemplate("jsc_global_function_declaration");
         t_function.replace("$jsname", state.function(NAME))
             .replace("$jswrapper", state.function(WRAPPER_NAME));
         t_function.pretty_print(Getattr(current_namespace, "functions"));
@@ -1826,6 +1852,7 @@ JSEmitterState::JSEmitterState()
 }
 
 JSEmitterState::~JSEmitterState() {
+    Clear(globalHash);
     Delete(globalHash);
 }
 

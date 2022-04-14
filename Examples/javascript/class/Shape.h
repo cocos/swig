@@ -49,6 +49,9 @@ public:
   virtual double area() = 0;
   virtual double perimeter() = 0;
   static  int nshapes;
+
+  private:
+  int myPrivate;
 };
 
 }}

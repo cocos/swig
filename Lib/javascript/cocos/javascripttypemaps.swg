@@ -263,9 +263,9 @@ temp=($*1_ltype)lua_tonumber(L,$input); $1=&temp;%}
 // passing objects by value
 // SWIG_ConvertPtr wants an object pointer (the $&ltype argp)
 // then dereferences it to get the object
-%typemap(in,checkfn="lua_isuserdata") SWIGTYPE ($&ltype argp)
+%typemap(in) SWIGTYPE ($&ltype argp)
 %{
-   if (!SWIG_IsOK(SWIG_ConvertPtr(L,$input,(void**)&argp,$&descriptor,0))){
+   if (!SWIG_IsOK(SWIG_ConvertPtrIn111(L,$input,(void**)&argp,$&descriptor,0))){
      SWIG_fail_ptr("$symname",$argnum,$&descriptor);
    }
    $1 = *argp;
@@ -288,7 +288,7 @@ $1=($1_ltype)&temp;%}
 // use %apply SWIGTYPE* DISOWN {Foo* toDie};
 // you could just use %delobject, but this is more flexible
 %typemap(in,checkfn="SWIG_isptrtype") SWIGTYPE* DISOWN,SWIGTYPE DISOWN[]
-%{  if (!SWIG_IsOK(SWIG_ConvertPtr(L,$input,(void**)&$1,$descriptor,SWIG_POINTER_DISOWN))){
+%{  if (!SWIG_IsOK(SWIG_ConvertPtrIn222(L,$input,(void**)&$1,$descriptor,SWIG_POINTER_DISOWN))){
     SWIG_fail_ptr("$symname",$argnum,$descriptor);
   }
 %}
@@ -299,21 +299,11 @@ $1=($1_ltype)&temp;%}
 // Note: the brackets are {...} and not %{..%}, because we want them to be included in the wrapper
 // this is because typemap(out) does not support local variables, like in typemap(in) does
 // and we need the $&1_ltype resultptr; to be declared
-#ifdef __cplusplus
 %typemap(out) SWIGTYPE
 {
   $&1_ltype resultptr = new $1_ltype((const $1_ltype &) $1);
-  SWIG_NewPointerObj(L,(void *) resultptr,$&1_descriptor,1); SWIG_arg++;
+  SWIG_NewPointerObjHa1(L,(void *) resultptr,$&1_descriptor,1); SWIG_arg++;
 }
-#else
-%typemap(out) SWIGTYPE
-{
-  $&1_ltype resultptr;
-  resultptr = ($&1_ltype) malloc(sizeof($1_type));
-  memmove(resultptr, &$1, sizeof($1_type));
-  SWIG_NewPointerObj(L,(void *) resultptr,$&1_descriptor,1); SWIG_arg++;
-}
-#endif
 
 // member function pointer
 // a member fn ptr is not 4 bytes like a normal pointer, but 8 bytes (at least on mingw)
@@ -407,7 +397,7 @@ parameters match which function
 
 %typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE *, SWIGTYPE [] {
   void *ptr;
-  if (SWIG_isptrtype(L,$input)==0 || SWIG_ConvertPtr(L,$input, (void **) &ptr, $1_descriptor, 0)) {
+  if (SWIG_isptrtype(L,$input)==0 || SWIG_ConvertPtr61(L,$input, (void **) &ptr, $1_descriptor, 0)) {
     $1 = 0;
   } else {
     $1 = 1;
@@ -416,7 +406,7 @@ parameters match which function
 
 %typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE & {
   void *ptr;
-  if (lua_isuserdata(L,$input)==0 || SWIG_ConvertPtr(L,$input, (void **) &ptr, $1_descriptor, SWIG_POINTER_NO_NULL)) {
+  if (lua_isuserdata(L,$input)==0 || SWIG_ConvertPtr62(L,$input, (void **) &ptr, $1_descriptor, SWIG_POINTER_NO_NULL)) {
     $1 = 0;
   } else {
     $1 = 1;
@@ -425,7 +415,7 @@ parameters match which function
 
 %typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE && {
   void *ptr;
-  if (lua_isuserdata(L,$input)==0 || SWIG_ConvertPtr(L,$input, (void **) &ptr, $1_descriptor, SWIG_POINTER_NO_NULL)) {
+  if (lua_isuserdata(L,$input)==0 || SWIG_ConvertPtr63(L,$input, (void **) &ptr, $1_descriptor, SWIG_POINTER_NO_NULL)) {
     $1 = 0;
   } else {
     $1 = 1;
@@ -434,7 +424,7 @@ parameters match which function
 
 %typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE {
   void *ptr;
-  if (lua_isuserdata(L,$input)==0 || SWIG_ConvertPtr(L,$input, (void **) &ptr, $&1_descriptor, SWIG_POINTER_NO_NULL)) {
+  if (lua_isuserdata(L,$input)==0 || SWIG_ConvertPtr64(L,$input, (void **) &ptr, $&1_descriptor, SWIG_POINTER_NO_NULL)) {
     $1 = 0;
   } else {
     $1 = 1;
@@ -443,7 +433,7 @@ parameters match which function
 
 %typecheck(SWIG_TYPECHECK_VOIDPTR) void * {
   void *ptr;
-  if (SWIG_isptrtype(L,$input)==0 || SWIG_ConvertPtr(L,$input, (void **) &ptr, 0, 0)) {
+  if (SWIG_isptrtype(L,$input)==0 || SWIG_ConvertPtr65(L,$input, (void **) &ptr, 0, 0)) {
     $1 = 0;
   } else {
     $1 = 1;
@@ -456,7 +446,7 @@ parameters match which function
 %typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE *const&
 {
   void *ptr;
-  if (SWIG_isptrtype(L,$input)==0 || SWIG_ConvertPtr(L,$input, (void **) &ptr, $*descriptor, 0)) {
+  if (SWIG_isptrtype(L,$input)==0 || SWIG_ConvertPtr66(L,$input, (void **) &ptr, $*descriptor, 0)) {
     $1 = 0;
   } else {
     $1 = 1;

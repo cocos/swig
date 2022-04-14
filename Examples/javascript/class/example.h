@@ -1,9 +1,16 @@
 
+// SWIG_INCLUDE(Shape.h)
+// SWIG_MY_INCLUDE(Shape.h)
 
 /* File : example.h */
 namespace cc { namespace gfx {
 
-
+struct MyStruct {
+  int a;
+  std::vector<float> b;
+  std::vector<std::list<int>> c;
+  std::variant<float, std::vector<int>> d;
+};
 
 #define UP 1
 #define DOWN 2 
@@ -23,7 +30,25 @@ void globalMove(SomeObject *, int direction, int distance);
 
 double sqrtAAA(double posdouble);
 
+int globalOverloadFunc(int a);
+int globalOverloadFunc(int a, float b);
+int globalOverloadFunc(int a, float b, bool c);
+int globalOverloadFunc(double a, const char* b);
 
+class MyAbstractClass {
+  public:
+  virtual ~MyAbstractClass() = default;
+  virtual void myAbstractMethod1() = 0;
+  virtual void myAbstractMethod2() = 0;
+  virtual void myAbstractMethod3() = 0;
+};
+
+class MySubClass : public MyAbstractClass {
+  public:
+  void myAbstractMethod1() override;
+  void myAbstractMethod2() override;
+  void myAbstractMethod3() override;
+};
 
 class Circle : public Shape {
 private:
@@ -52,9 +77,13 @@ public:
   double perimeter() override;
   void helloWorld(int aaa, bool isXXX, float    floatValue, MyType* myTypePtr);
   void helloWorld(bool);
+
+  
   void testArr(vector<MyType>& myVec);
 
+  // %serialize(mPublicInt)
   int mPublicInt;
+
   static float sPublicFloat;
 
   static void staticFoo();

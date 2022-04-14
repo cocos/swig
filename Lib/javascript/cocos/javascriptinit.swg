@@ -29,3 +29,13 @@ bool register_all_$jsname(se::Object* obj) {
     return true;
 }
 %}
+
+%fragment ("se_global_variables", "templates") %{
+    JSB_REGISTER_OBJECT_TYPE($jsclassname)
+    extern se::Object *__jsb_$jsmangledname_proto; // NOLINT
+    extern se::Class * __jsb_$jsmangledname_class; // NOLINT
+%}
+
+%fragment ("js_register_module_declare", "templates") %{
+bool register_all_$jsname(se::Object* obj);
+%}
