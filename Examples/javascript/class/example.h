@@ -2,15 +2,30 @@
 // SWIG_INCLUDE(Shape.h)
 // SWIG_MY_INCLUDE(Shape.h)
 
+namespace cc { namespace gfx {
+  struct MyStruct {
+    int a;
+    std::vector<float> b;
+    %immutable;
+    std::vector<std::list<int>> c;
+    %mutable;
+    std::variant<float, std::vector<int>> d;
+  };
+}}
+
+namespace std {
+   %template(vectorMyStruct) std::vector<MyStruct>;
+};
+
 /* File : example.h */
 namespace cc { namespace gfx {
 
-struct MyStruct {
-  int a;
-  std::vector<float> b;
-  std::vector<std::list<int>> c;
-  std::variant<float, std::vector<int>> d;
-};
+%apply int *OUTPUT { int *result };
+%apply int *INPUT { int *x, int *y};
+void my_add(int x, int y, int *result); 
+int my_sub(int *x, int *y);
+
+
 
 #define UP 1
 #define DOWN 2 
@@ -35,12 +50,16 @@ int globalOverloadFunc(int a, float b);
 int globalOverloadFunc(int a, float b, bool c);
 int globalOverloadFunc(double a, const char* b);
 
+void setStdVector(const std::vector<MyStruct>& arg);
+
 class MyAbstractClass {
   public:
   virtual ~MyAbstractClass() = default;
   virtual void myAbstractMethod1() = 0;
   virtual void myAbstractMethod2() = 0;
   virtual void myAbstractMethod3() = 0;
+
+  MyStruct mMyStruct;
 };
 
 class MySubClass : public MyAbstractClass {
@@ -72,6 +91,34 @@ private:
   double width;
 public:
 
+  enum MySquareEnum {
+    MySquareEnum_1,
+    MySquareEnum_2,
+    MySquareEnum_3,
+    MySquareEnum_4,
+  };
+
+  friend void blah(Square *f);
+
+  MySquareEnum updateEnum(bool a, MySquareEnum e, float b);
+  MySquareEnum updateEnumConst(const char* a, const MySquareEnum e, bool b);
+  MySquareEnum updateEnumConstRef(std::string bbb, const std::string& a, const MySquareEnum &e, short b);
+
+  enum class MyEnumClass {
+    ONE,
+    TWO,
+    THREE
+  };
+  MyEnumClass updateEnumClass(bool a, MyEnumClass e, float b = 0.1f);
+  MyEnumClass updateEnumClassConst(const char* a, const MyEnumClass e, bool b);
+  MyEnumClass updateEnumClassConstRef(const std::string& a, const MyEnumClass &e, short b);
+
+  %apply (std::string* INOUT) {std::string* pResult};
+  std::string* convertString(const int & a, std::string* pResult);
+
+  using MyString = std::string;
+  MyString convertTypedDefString(MyString);
+
   Square(double w) : width(w) { }
   double area() override;
   double perimeter() override;
@@ -87,6 +134,9 @@ public:
   static float sPublicFloat;
 
   static void staticFoo();
+
+  std::string myStdStringProperty;
+  MyString myTypedDefStringProperty;
 };
 
 }}

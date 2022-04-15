@@ -37,5 +37,5 @@ bool register_all_$jsname(se::Object* obj) {
 %}
 
 %fragment ("js_register_module_declare", "templates") %{
-bool register_all_$jsname(se::Object* obj);
+bool register_all_$jsmodulename(se::Object* obj);
 %}

@@ -11,18 +11,16 @@
    to SWIG_AsVal_dec functions (JSContextRef context).
    They must be defined before including `typemaps/fragments.swg`
 */
-/*cjh
 #define SWIG_FROM_DECL_ARGS SWIG_JSC_FROM_DECL_ARGS
 #define SWIG_FROM_CALL_ARGS SWIG_JSC_FROM_CALL_ARGS
 #define SWIG_AS_DECL_ARGS SWIG_JSC_AS_DECL_ARGS
 #define SWIG_AS_CALL_ARGS SWIG_JSC_AS_CALL_ARGS
-*/
 
 /* Include fundamental fragemt definitions */
-//cjh %include <typemaps/fragments.swg>
+%include <typemaps/fragments.swg>
 
 /* Look for user fragments file. */
-//cjh %include <javascriptfragments.swg>
+%include <javascriptfragments.swg>
 
 /* Javascript fragments for fundamental types */
 //cjh %include <javascriptprimtypes.swg>
@@ -146,28 +144,31 @@ temp=($*1_ltype)lua_tonumber(L,$input); $1=&temp;%}
 /* enums have to be handled slightly differently
    VC++ .net will not allow a cast from lua_Number(double) to enum directly.
 */
-%typemap(in,checkfn="lua_isnumber") enum SWIGTYPE
-%{$1 = ($type)(int)lua_tonumber(L, $input);%}
+%typemap(in) enum SWIGTYPE (int32_t temp)
+%{ ok &= sevalue_to_native($input, &temp);
+   SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");
+   $1 = ($ltype)temp;%}
 
-%typemap(out) enum SWIGTYPE
-%{  lua_pushnumber(L, (lua_Number)(int)($1)); SWIG_arg++;%}
+%typemap(out) enum SWIGTYPE (int32_t temp)
+%{ ok &= nativevalue_to_se($1, temp, nullptr /*ctx*/);
+   SE_PRECONDITION2(ok, false, "$symname, Error processing arguments"); 
+   s.rval().setInt32(temp);%}
 
 // and const refs
-%typemap(in,checkfn="lua_isnumber") const enum SWIGTYPE &($basetype temp)
+%typemap(in) const enum SWIGTYPE &($basetype temp)
 %{ temp=($basetype)(int)lua_tonumber(L,$input); $1=&temp;%}
-%typemap(in,checkfn="lua_isnumber") const enum SWIGTYPE &&($basetype temp)
+
+%typemap(in) const enum SWIGTYPE &&($basetype temp)
 %{ temp=($basetype)(int)lua_tonumber(L,$input); $1=&temp;%}
+
 %typemap(out) const enum SWIGTYPE &
 %{  lua_pushnumber(L, (lua_Number) *$1); SWIG_arg++;%}
 %typemap(out) const enum SWIGTYPE &&
 %{  lua_pushnumber(L, (lua_Number) *$1); SWIG_arg++;%}
 
-
-// boolean (which is a special type in lua)
-// note: lua_toboolean() returns 1 or 0
-// note: 1 & 0 are not booleans in lua, only true & false
-%typemap(in,checkfn="lua_isboolean") bool
-%{$1 = (lua_toboolean(L, $input)!=0);%}
+%typemap(in) bool
+%{ ok &= sevalue_to_native($input, &$1);
+   SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor"); %}
 
 %typemap(out) bool
 %{ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);%}

@@ -280,7 +280,7 @@ protected:
     Hash *namespaces;
     Hash *current_namespace;
     String *defaultResultName;
-    File *f_wrappers;
+    String *s_wrappers;
 };
 
 /* factory methods for concrete JSEmitters: */
@@ -329,6 +329,8 @@ private:
  * --------------------------------------------------------------------- */
 
 int COCOS::functionWrapper(Node *n) {
+    String * ns = Getattr(n, "type");
+    printf("cjh functionWrapper: type: %s\n", Char(ns));
     // note: the default implementation only prints a message
     // Language::functionWrapper(n);
     emitter->emitWrapperFunction(n);
@@ -572,7 +574,7 @@ extern "C" Language *swig_cocos(void) {
  * ----------------------------------------------------------------------------- */
 
 JSEmitter::JSEmitter(JSEmitter::JSEngine engine)
-: engine(engine), templates(NewHash()), namespaces(NULL), current_namespace(NULL), defaultResultName(NewString("result")), f_wrappers(NULL) {
+: engine(engine), templates(NewHash()), namespaces(NULL), current_namespace(NULL), defaultResultName(NewString("result")), s_wrappers(NULL) {
 }
 
 /* -----------------------------------------------------------------------------
@@ -626,7 +628,7 @@ int JSEmitter::initialize(Node * /*n */) {
     Setattr(namespaces, "::", global_namespace);
     current_namespace = global_namespace;
 
-    f_wrappers = NewString("");
+    s_wrappers = NewString("");
 
     return SWIG_OK;
 }
@@ -838,7 +840,7 @@ int JSEmitter::emitCtor(Node *n) {
         .replace("$jslocals", wrapper->locals)
         .replace("$jscode", wrapper->code)
         .replace("$jsargcount", Getattr(n, ARGCOUNT))
-        .pretty_print(f_wrappers);
+        .pretty_print(s_wrappers);
 
     Template t_ctor_case(getTemplate("js_ctor_dispatch_case"));
     t_ctor_case.replace("$jswrapper", wrap_name)
@@ -856,7 +858,7 @@ int JSEmitter::emitCtor(Node *n) {
                 .replace("$jsmangledname", state.clazz(NAME_MANGLED))
                 .replace("$jsname", state.clazz(NAME))
                 .replace("$jsdispatchcases", state.clazz(CTOR_DISPATCHERS))
-                .pretty_print(f_wrappers);
+                .pretty_print(s_wrappers);
             state.clazz(CTOR, wrap_name);
         }
     } else {
@@ -908,7 +910,7 @@ int JSEmitter::emitDtor(Node *n) {
     if (Extend) {
         String *wrap = Getattr(n, "wrap:code");
         if (wrap) {
-            Printv(f_wrappers, wrap, NIL);
+            Printv(s_wrappers, wrap, NIL);
         }
     }
     // HACK: this is only for the v8 emitter. maybe set an attribute wrap:action of node
@@ -971,7 +973,7 @@ int JSEmitter::emitDtor(Node *n) {
             .replace("$jstype", ctype);
 
         t_dtor.replace("${destructor_action}", destructor_action);
-        Wrapper_pretty_print(t_dtor.str(), f_wrappers);
+        Wrapper_pretty_print(t_dtor.str(), s_wrappers);
     } else {
         Template t_dtor = getTemplate("js_dtor");
         state.clazz(DTOR, wrap_name);
@@ -979,7 +981,7 @@ int JSEmitter::emitDtor(Node *n) {
             .replace("$jswrapper", wrap_name)
             .replace("$jsfree", jsfree)
             .replace("$jstype", ctype)
-            .pretty_print(f_wrappers);
+            .pretty_print(s_wrappers);
     }
 
     Delete(p_classtype);
@@ -1013,7 +1015,7 @@ int JSEmitter::emitGetter(Node *n, bool is_member, bool is_static) {
     t_getter.replace("$jswrapper", wrap_name)
         .replace("$jslocals", wrapper->locals)
         .replace("$jscode", wrapper->code)
-        .pretty_print(f_wrappers);
+        .pretty_print(s_wrappers);
 
     DelWrapper(wrapper);
 
@@ -1050,7 +1052,7 @@ int JSEmitter::emitSetter(Node *n, bool is_member, bool is_static) {
     t_setter.replace("$jswrapper", wrap_name)
         .replace("$jslocals", wrapper->locals)
         .replace("$jscode", wrapper->code)
-        .pretty_print(f_wrappers);
+        .pretty_print(s_wrappers);
 
     DelWrapper(wrapper);
 
@@ -1099,7 +1101,7 @@ int JSEmitter::emitConstant(Node *n) {
         Printf(mpointer_wname, "_wrapConstant_%s", iname);
         Setattr(n, "memberpointer:constant:wrap:name", mpointer_wname);
         String *str = SwigType_str(type, mpointer_wname);
-        Printf(f_wrappers, "static %s = %s;\n", str, value);
+        Printf(s_wrappers, "static %s = %s;\n", str, value);
         Delete(str);
         value = mpointer_wname;
     }
@@ -1109,7 +1111,7 @@ int JSEmitter::emitConstant(Node *n) {
     t_getter.replace("$jswrapper", wname)
         .replace("$jslocals", wrapper->locals)
         .replace("$jscode", wrapper->code)
-        .pretty_print(f_wrappers);
+        .pretty_print(s_wrappers);
 
     exitVariable(n);
 
@@ -1126,6 +1128,10 @@ int JSEmitter::emitFunction(Node *n, bool is_member, bool is_static) {
 
     // prepare the function wrapper name
     String *iname = Copy(Getattr(n, "name"));
+
+    String *symname = Getattr(n, "sym:name");
+    const char* symname_str = Char(symname);
+    printf("cjh function symname: %s\n", symname_str);
 
     if (is_member) {
         Node *parentNode = Getattr(n, "parentNode");
@@ -1166,7 +1172,7 @@ int JSEmitter::emitFunction(Node *n, bool is_member, bool is_static) {
         .replace("$jslocals", wrapper->locals)
         .replace("$jscode", wrapper->code)
         .replace("$jsargcount", Getattr(n, ARGCOUNT))
-        .pretty_print(f_wrappers);
+        .pretty_print(s_wrappers);
 
     DelWrapper(wrapper);
 
@@ -1224,7 +1230,7 @@ int JSEmitter::emitFunctionDispatcher(Node *n, bool /*is_member */) {
     // call this here, to replace all variables
     t_function.replace("$jswrapper", wrap_name)
         .replace("$jsname", state.function(NAME))
-        .pretty_print(f_wrappers);
+        .pretty_print(s_wrappers);
 
     // Delete the state variable
     DelWrapper(wrapper);
@@ -1447,9 +1453,9 @@ private:
     // output file and major code parts
     File *f_wrap_cpp{};
     File *f_wrap_h{};
-    File *f_runtime{};
-    File *f_header{};
-    File *f_init{};
+    String *s_runtime{};
+    String *s_header{};
+    String *s_init{};
 };
 
 CocosEmitter::CocosEmitter()
@@ -1561,9 +1567,9 @@ int CocosEmitter::initialize(Node *n) {
     }
 
     /* Initialization of members */
-    f_runtime = NewString("");
-    f_init = NewString("");
-    f_header = NewString("");
+    s_runtime = NewString("");
+    s_init = NewString("");
+    s_header = NewString("");
 
     state.globals(CREATE_NAMESPACES, NewString(""));
     state.globals(REGISTER_NAMESPACES, NewString(""));
@@ -1575,10 +1581,10 @@ int CocosEmitter::initialize(Node *n) {
 
     /* Register file targets with the SWIG file handler */
     Swig_register_filebyname("begin", f_wrap_cpp);
-    Swig_register_filebyname("header", f_header);
-    Swig_register_filebyname("wrapper", f_wrappers);
-    Swig_register_filebyname("runtime", f_runtime);
-    Swig_register_filebyname("init", f_init);
+    Swig_register_filebyname("header", s_header);
+    Swig_register_filebyname("wrapper", s_wrappers);
+    Swig_register_filebyname("runtime", s_runtime);
+    Swig_register_filebyname("init", s_init);
 
     Swig_banner(f_wrap_cpp);
     Swig_banner(f_wrap_h);
@@ -1591,14 +1597,14 @@ int CocosEmitter::dump(Node *n) {
     String *module = Getattr(n, "name");
 
     //  Template initializer_define(getTemplate("js_initializer_define"));
-    //  initializer_define.replace("$jsname", module).pretty_print(f_header);
+    //  initializer_define.replace("$jsname", module).pretty_print(s_header);
 
-    //cjh  SwigType_emit_type_table(f_runtime, f_wrappers);
+    //cjh  SwigType_emit_type_table(s_runtime, s_wrappers);
 
-    Printv(f_wrap_cpp, f_runtime, "\n", 0);
-    Printv(f_wrap_cpp, f_header, "\n", 0);
-    Printv(f_wrap_cpp, f_wrappers, "\n", 0);
-    Printv(f_wrap_h, f_header, "\n", 0);
+    Printv(f_wrap_cpp, s_runtime, "\n", 0);
+    Printv(f_wrap_cpp, s_header, "\n", 0);
+    Printv(f_wrap_cpp, s_wrappers, "\n", 0);
+    Printv(f_wrap_h, s_header, "\n", 0);
 
     emitNamespaces();
 
@@ -1607,24 +1613,26 @@ int CocosEmitter::dump(Node *n) {
     initializer.replace("$jsname", module)
         .replace("$jsregisterclasses", state.globals(REGISTER_CLASSES))
         .replace("$jsregisternamespaces", state.globals(REGISTER_NAMESPACES))
-        .pretty_print(f_init);
+        .pretty_print(s_init);
 
-    Printv(f_wrap_cpp, f_init, 0);
+    Printv(f_wrap_cpp, s_init, 0);
 
     {
         Template template_module_declare(getTemplate("js_register_module_declare"));
-        template_module_declare.replace("$jsname", module)
+        template_module_declare.replace("$jsmodulename", module)
             .pretty_print(f_wrap_h);
     }
+
+    Printv(f_wrap_h, state.globals(HEADER_REGISTER_CLASSES), 0);
 
     return SWIG_OK;
 }
 
 int CocosEmitter::close() {
-    Delete(f_runtime);
-    Delete(f_header);
-    Delete(f_wrappers);
-    Delete(f_init);
+    Delete(s_runtime);
+    Delete(s_header);
+    Delete(s_wrappers);
+    Delete(s_init);
     Delete(namespaces);
     Delete(f_wrap_cpp);
     Delete(f_wrap_h);
@@ -1723,7 +1731,7 @@ int CocosEmitter::enterClass(Node *n) {
     String *type = SwigType_manglestr(Getattr(n, "classtypeobj"));
     t_class_decl.replace("$jsmangledname", state.clazz(NAME_MANGLED))
         .replace("$jsname", state.clazz(NAME))
-        .pretty_print(f_wrappers);
+        .pretty_print(s_wrappers);
 
     return SWIG_OK;
 }
@@ -1733,14 +1741,14 @@ int CocosEmitter::exitClass(Node *n) {
 
     /* adds the ctor wrappers at this position */
     // Note: this is necessary to avoid extra forward declarations.
-    //Append(f_wrappers, state.clazz(CTOR_WRAPPERS));
+    //Append(s_wrappers, state.clazz(CTOR_WRAPPERS));
 
     // for abstract classes add a vetoing ctor
     if (GetFlag(state.clazz(), IS_ABSTRACT)) {
         Template t_veto_ctor(getTemplate("js_veto_ctor"));
         t_veto_ctor.replace("$jswrapper", state.clazz(CTOR))
             .replace("$jsname", state.clazz(NAME))
-            .pretty_print(f_wrappers);
+            .pretty_print(s_wrappers);
     }
 
     /* adds a class template statement to initializer function */
@@ -1791,7 +1799,7 @@ int CocosEmitter::exitClass(Node *n) {
     /* Note: this makes sure that there is a swig_type added for this class */
     SwigType_remember_clientdata(state.clazz(TYPE_MANGLED), NewString("0"));
 
-    Printv(f_wrappers, state.globals(INITIALIZER), 0); //cjh added
+    Printv(s_wrappers, state.globals(INITIALIZER), 0); //cjh added
 
     /* adds a class registration statement to initializer function */
     Template t_registerclass(getTemplate("jsc_class_registration"));
@@ -1799,6 +1807,11 @@ int CocosEmitter::exitClass(Node *n) {
         .replace("$jsmangledname", state.clazz(NAME_MANGLED))
         .replace("$jsnspace", Getattr(state.clazz("nspace"), NAME_MANGLED))
         .pretty_print(state.globals(REGISTER_CLASSES));
+
+    Template t_headerRegisterClass(getTemplate("se_global_variables"));
+    t_headerRegisterClass.replace("$jsclassname", Getattr(n, "name"))
+        .replace("$jsmangledname", state.clazz(NAME_MANGLED))
+        .pretty_print(state.globals(HEADER_REGISTER_CLASSES));
 
     return SWIG_OK;
 }
