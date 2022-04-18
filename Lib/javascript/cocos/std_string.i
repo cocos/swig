@@ -42,8 +42,15 @@ namespace std {
 %typemap(out) string
 %{ lua_pushlstring(L,$1.data(),$1.size()); SWIG_arg++;%}
 
+%typemap(in) string *self 
+%{ $1 = SE_THIS_OBJECT<$*ltype>(s);
+   SE_PRECONDITION2($1, false, "%s: Invalid Native Object", __FUNCTION__); %}
+
 %typemap(in,checkfn="lua_isstring") string*
 %{// string*
+    std::string
+    ok &= sevalue_to_native($input, &$1);
+    SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");
     $1.assign(lua_tostringxxx(L,$input),lua_rawlen(L,$input));%}
 
 %typemap(out) string*

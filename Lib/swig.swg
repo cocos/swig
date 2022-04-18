@@ -703,4 +703,13 @@ template <typename T> T SwigValueInit() {
 
 %insert("runtime") "swiglabels.swg"
 
+#else
+
+%insert("runtime") %{
+/* internal SWIG method */
+#ifndef SWIGINTERN
+# define SWIGINTERN static 
+#endif
+%}
+
 #endif // #ifndef SWIG_JAVASCRIPT_COCOS

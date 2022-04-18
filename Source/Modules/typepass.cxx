@@ -503,11 +503,6 @@ class TypePass:private Dispatcher {
       }
     }
 
-    //cjh add
-      if (nsname) {
-          Setattr(n, "nsname", nsname);
-      }
-
     if (nsname && name) {
       nname = NewStringf("%s::%s", nsname, name);
       String *tdname = Getattr(n, "tdname");

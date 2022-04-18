@@ -315,6 +315,23 @@ public:
    **/
     virtual int fragmentDirective(Node *n);
 
+    /* SWIG directives */
+
+
+    virtual int applyDirective(Node *n);
+    virtual int clearDirective(Node *n);
+    virtual int constantDirective(Node *n);
+    virtual int extendDirective(Node *n);
+    virtual int importDirective(Node *n);
+    virtual int includeDirective(Node *n);
+    virtual int insertDirective(Node *n);
+    virtual int moduleDirective(Node *n);
+    virtual int nativeDirective(Node *n);
+    virtual int pragmaDirective(Node *n);
+    virtual int typemapDirective(Node *n);
+    virtual int typemapcopyDirective(Node *n);
+    virtual int typesDirective(Node *n);
+
 public:
     virtual String *getNSpace() const;
 
@@ -475,6 +492,59 @@ int COCOS::fragmentDirective(Node *n) {
 
     return SWIG_OK;
 }
+
+int COCOS::applyDirective(Node *n) {
+    return Language::applyDirective(n);
+}
+
+int COCOS::clearDirective(Node *n) {
+    return Language::clearDirective(n);
+}
+
+int COCOS::constantDirective(Node *n) {
+    return Language::constantDirective(n);
+}
+
+int COCOS::extendDirective(Node *n) {
+    return Language::extendDirective(n);
+}
+
+int COCOS::importDirective(Node *n) {
+    return Language::importDirective(n);
+}
+
+int COCOS::includeDirective(Node *n) {
+    return Language::includeDirective(n);
+}
+
+int COCOS::insertDirective(Node *n) {
+    return Language::insertDirective(n);
+}
+
+int COCOS::moduleDirective(Node *n) {
+    return Language::moduleDirective(n);
+}
+
+int COCOS::nativeDirective(Node *n) {
+    return Language::nativeDirective(n);
+}
+
+int COCOS::pragmaDirective(Node *n) {
+    return Language::pragmaDirective(n);
+}
+
+int COCOS::typemapDirective(Node *n) {
+    return Language::typemapDirective(n);
+}
+
+int COCOS::typemapcopyDirective(Node *n) {
+    return Language::typemapcopyDirective(n);
+}
+
+int COCOS::typesDirective(Node *n) {
+    return Language::typesDirective(n);
+}
+
 
 String *COCOS::getNSpace() const {
     return Language::getNSpace();
@@ -738,6 +808,10 @@ int JSEmitter::enterClass(Node *n) {
     //cjh
     Printf(mangled_name, "%s", Getattr(n, "classtype"));
     Replaceall(mangled_name, "::", "_");
+    Replaceall(mangled_name, "<", "_");
+    Replaceall(mangled_name, ">", "");
+    Replaceall(mangled_name, " ", "");
+    //
 
     // Printf(mangled_name, "%s_%s", Getattr(current_namespace, NAME_MANGLED), Getattr(n, "sym:name"));
 
@@ -752,7 +826,7 @@ int JSEmitter::enterClass(Node *n) {
     state.clazz(TYPE_MANGLED, classtype_mangled);
     Delete(type);
 
-    String *ctor_wrapper = NewString("_wrap_new_veto_");
+    String *ctor_wrapper = NewString("js_new_veto_");
     Append(ctor_wrapper, state.clazz(NAME));
     state.clazz(CTOR, ctor_wrapper);
     state.clazz(CTOR_DISPATCHERS, NewString(""));
@@ -1120,6 +1194,19 @@ int JSEmitter::emitConstant(Node *n) {
     return SWIG_OK;
 }
 
+static Node* getClass(Node* n) {
+    Node *parentNode = Getattr(n, "parentNode");
+    if (parentNode != nullptr) {
+        if (Cmp(Getattr(parentNode, "nodeType"), "class") == 0) {
+            return parentNode;
+        }
+
+        return getClass(parentNode);
+    }
+
+    return nullptr;
+}
+
 int JSEmitter::emitFunction(Node *n, bool is_member, bool is_static) {
     Wrapper *wrapper = NewWrapper();
     Template t_function(getTemplate("js_function"));
@@ -1134,11 +1221,10 @@ int JSEmitter::emitFunction(Node *n, bool is_member, bool is_static) {
     printf("cjh function symname: %s\n", symname_str);
 
     if (is_member) {
-        Node *parentNode = Getattr(n, "parentNode");
+        Node *parentNode = getClass(n);
         if (parentNode != nullptr) {
             Insert(iname, 0, "::");
             Insert(iname, 0, Getattr(parentNode, "name"));
-
         }
     }
 
@@ -1455,6 +1541,7 @@ private:
     File *f_wrap_h{};
     String *s_runtime{};
     String *s_header{};
+    String *s_header_file{};
     String *s_init{};
 };
 
@@ -1570,6 +1657,7 @@ int CocosEmitter::initialize(Node *n) {
     s_runtime = NewString("");
     s_init = NewString("");
     s_header = NewString("");
+    s_header_file = NewString("");
 
     state.globals(CREATE_NAMESPACES, NewString(""));
     state.globals(REGISTER_NAMESPACES, NewString(""));
@@ -1585,6 +1673,7 @@ int CocosEmitter::initialize(Node *n) {
     Swig_register_filebyname("wrapper", s_wrappers);
     Swig_register_filebyname("runtime", s_runtime);
     Swig_register_filebyname("init", s_init);
+    Swig_register_filebyname("header_file", s_header_file);
 
     Swig_banner(f_wrap_cpp);
     Swig_banner(f_wrap_h);
@@ -1604,7 +1693,7 @@ int CocosEmitter::dump(Node *n) {
     Printv(f_wrap_cpp, s_runtime, "\n", 0);
     Printv(f_wrap_cpp, s_header, "\n", 0);
     Printv(f_wrap_cpp, s_wrappers, "\n", 0);
-    Printv(f_wrap_h, s_header, "\n", 0);
+    Printv(f_wrap_h, s_header_file, "\n", 0);
 
     emitNamespaces();
 
@@ -1631,6 +1720,7 @@ int CocosEmitter::dump(Node *n) {
 int CocosEmitter::close() {
     Delete(s_runtime);
     Delete(s_header);
+    Delete(s_header_file);
     Delete(s_wrappers);
     Delete(s_init);
     Delete(namespaces);
@@ -1778,8 +1868,12 @@ int CocosEmitter::exitClass(Node *n) {
             .pretty_print(jsclass_inheritance);
     }
 
+    String* jsclassname = Copy(Getattr(n, "name"));
+    Replaceall(jsclassname, "(", "");
+    Replaceall(jsclassname, ")", "");
+
     t_classtemplate.replace("$jsmangledname", state.clazz(NAME_MANGLED))
-        .replace("$jsclassname", Getattr(n, "name"))
+        .replace("$jsclassname", jsclassname)
         .replace("$jsname", state.clazz(NAME))
         .replace("$jsmangledtype", state.clazz(TYPE_MANGLED))
         .replace("$jsclass_inheritance", jsclass_inheritance)
@@ -1793,6 +1887,7 @@ int CocosEmitter::exitClass(Node *n) {
         .replace("$jsstaticclassvariables", state.clazz(STATIC_VARIABLES));
 
     t_classtemplate.pretty_print(state.globals(INITIALIZER));
+
 
     Delete(jsclass_inheritance);
 
@@ -1809,9 +1904,11 @@ int CocosEmitter::exitClass(Node *n) {
         .pretty_print(state.globals(REGISTER_CLASSES));
 
     Template t_headerRegisterClass(getTemplate("se_global_variables"));
-    t_headerRegisterClass.replace("$jsclassname", Getattr(n, "name"))
+    t_headerRegisterClass.replace("$jsclassname", jsclassname)
         .replace("$jsmangledname", state.clazz(NAME_MANGLED))
         .pretty_print(state.globals(HEADER_REGISTER_CLASSES));
+
+    Delete(jsclassname);
 
     return SWIG_OK;
 }

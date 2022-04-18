@@ -4,9 +4,11 @@
  * Javascript support code
  * ----------------------------------------------------------------------------- */
 
-%insert(runtime) %{
+%insert(header_file) %{
 #include "bindings/jswrapper/SeApi.h"
-#include "bindings/bindings/manual/jsb_conversions.h" %}
+#include "bindings/manual/jsb_conversions.h"
+#include "bindings/manual/jsb_global.h"
+%}
 
 //cjh %insert(runtime) "swigrun.swg";         /* SWIG API */
 //cjh %insert(runtime) "swigerrors.swg";      /* SWIG errors */

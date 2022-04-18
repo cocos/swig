@@ -54,7 +54,7 @@ SE_BIND_CTOR($jswrapper) %}
 static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
 {
     // js_ctor_dispatcher
-    size_t argc = args.size();
+    size_t argc = s.args().size();
     bool ret = false;
 
     // switch all cases by means of series of if-returns.
@@ -64,7 +64,7 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
     SE_REPORT_ERROR("Illegal arguments for construction of $jsname");
     return false;
 }
-SE_BIND_CTOR($jswrapper, __jsb$jsmangledname_class, _wrap_delete_$jsname) %}
+SE_BIND_CTOR($jswrapper, __jsb_$jsmangledname_class, js_delete_$jsname) %}
 
 /* -----------------------------------------------------------------------------
  * js_overloaded_ctor:  template for wrapping a ctor.
@@ -80,6 +80,7 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
 {
     // js_overloaded_ctor
     const auto& args = s.args();
+    CC_UNUSED bool ok = true;
     $jslocals
     $jscode
     auto *ptr = JSB_MAKE_PRIVATE_OBJECT_WITH_INSTANCE(result);
@@ -126,7 +127,7 @@ SE_BIND_FINALIZE_FUNC($jswrapper) %}
  * ----------------------------------------------------------------------------- */
 %fragment ("js_dtoroverride", "templates")
 %{
-static void $jswrapper(JSObjectRef thisObject)
+static bool $jswrapper(se::State& s)
 {// js_dtoroverride
   return true;
 }
@@ -307,10 +308,10 @@ bool js_register_$jsmangledname(se::Object* obj) {
 %}
 
 %fragment ("jsc_class_inherit", templates)
-%{ auto* cls = se::Class::create("$jsname", obj, __jsb_$jsbaseclassmangled_proto, $jsctor); %}
+%{ auto* cls = se::Class::create("$jsname", obj, __jsb_$jsbaseclassmangled_proto, _SE($jsctor)); %}
 
 %fragment ("jsc_class_noinherit", templates)
-%{ auto* cls = se::Class::create("$jsname", obj, nullptr, $jsctor); %}
+%{ auto* cls = se::Class::create("$jsname", obj, nullptr, _SE($jsctor)); %}
 
 /* -----------------------------------------------------------------------------
  * jsc_register_class:  template for registration of a class

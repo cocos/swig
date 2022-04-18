@@ -103,20 +103,25 @@ free($1); }
 %typemap(in,checkfn="lua_isnumber") int, short, long,
              signed char, float, double
 %{ 
-  ok &= sevalue_to_native<$type>($input, &$1, nullptr);
+  ok &= sevalue_to_native($input, &$1, nullptr);
   SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor"); %}
  
 // additional check for unsigned numbers, to not permit negative input
 %typemap(in,checkfn="lua_isnumber") unsigned int,
              unsigned short, unsigned long, unsigned char
-%{SWIG_contract_assert((lua_tonumber(L,$input)>=0),"number must not be negative");
-$1 = ($type)lua_tonumber(L, $input);%}
+%{
+  // SWIG_contract_assert((lua_tonumber(L,$input)>=0),"number must not be negative");
+  ok &= sevalue_to_native($input, &$1, nullptr);
+  SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");
+%}
 
 %typemap(out) int,short,long,
              unsigned int,unsigned short,unsigned long,
              signed char,unsigned char,
              float,double
-%{ ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/); %}
+%{
+  // out 1
+   ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/); %}
 
 // we must also provide typemaps for primitives by const reference:
 // given a function:
@@ -124,15 +129,28 @@ $1 = ($type)lua_tonumber(L, $input);%}
 // SWIG assumes that this code will need a pointer to int to be passed in
 // (this might be ok for objects by const ref, but not for numeric primitives)
 // therefore we add a set of typemaps to fix this (for both in & out)
-%typemap(in,checkfn="lua_isnumber") const int&($*1_ltype temp)
-%{ temp=($*1_ltype)lua_tonumber(L,$input); $1=&temp;%}
+%typemap(in,checkfn="lua_isnumber") const int& ($*1_ltype temp)
+%{ 
+  //temp=($*1_ltype)lua_tonumber(L,$input); $1=&temp;
+  ok &= sevalue_to_native($input, &temp, nullptr /*ctx*/);
+  SE_PRECONDITION2(ok, false, "$symname, Error processing arguments"); 
+  $1 = &temp;
+%}
 
-%typemap(in,checkfn="lua_isnumber") const unsigned int&($*1_ltype temp)
-%{SWIG_contract_assert((lua_tonumber(L,$input)>=0),"number must not be negative");
-temp=($*1_ltype)lua_tonumber(L,$input); $1=&temp;%}
+%typemap(in,checkfn="lua_isnumber") const unsigned int& //($*1_ltype temp)
+%{
+  //SWIG_contract_assert((lua_tonumber(L,$input)>=0),"number must not be negative");
+  // temp=($*1_ltype)lua_tonumber(L,$input); $1=&temp;
+  ok &= sevalue_to_native($input, &temp, nullptr /*ctx*/);
+  SE_PRECONDITION2(ok, false, "$symname, Error processing arguments"); 
+  $1 = &temp;
+%}
 
 %typemap(out) const int&, const unsigned int&
-%{  lua_pushnumber(L, (lua_Number) *$1); SWIG_arg++;%}
+%{ // out 2
+  ok &= nativevalue_to_se(*$1, s.rval(), nullptr /*ctx*/);
+  SE_PRECONDITION2(ok, false, "$symname, Error processing arguments"); 
+%}
 
 // for the other numbers we can just use an apply statement to cover them
 %apply const int & {const short&,const long&,const signed char&,
@@ -150,9 +168,10 @@ temp=($*1_ltype)lua_tonumber(L,$input); $1=&temp;%}
    $1 = ($ltype)temp;%}
 
 %typemap(out) enum SWIGTYPE (int32_t temp)
-%{ ok &= nativevalue_to_se($1, temp, nullptr /*ctx*/);
-   SE_PRECONDITION2(ok, false, "$symname, Error processing arguments"); 
-   s.rval().setInt32(temp);%}
+%{  // out 4
+  ok &= nativevalue_to_se($1, temp, nullptr /*ctx*/);
+  SE_PRECONDITION2(ok, false, "$symname, Error processing arguments"); 
+  s.rval().setInt32(temp);%}
 
 // and const refs
 %typemap(in) const enum SWIGTYPE &($basetype temp)
@@ -171,7 +190,8 @@ temp=($*1_ltype)lua_tonumber(L,$input); $1=&temp;%}
    SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor"); %}
 
 %typemap(out) bool
-%{ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);%}
+%{// out 5
+  ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);%}
 
 // for const bool&, SWIG treats this as a const bool* so we must dereference it
 %typemap(in,checkfn="lua_isboolean") const bool& (bool temp)
@@ -187,13 +207,17 @@ temp=($*1_ltype)lua_tonumber(L,$input); $1=&temp;%}
 %{ 
    ok &= sevalue_to_native($input, &temp);
    SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");
-   $1 = temp.c_str(); %}
+   $1 = ($ltype) temp.c_str(); %}
 
 %typemap(in) const char[ANY], char[ANY]
 %{$1 = ($ltype)lua_tostring(L, $input);%}
 
 %typemap(out) const char *, char *
-%{  lua_pushstring(L,(const char *)$1); SWIG_arg++;%}
+%{  // out 6
+  ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);
+  SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
+  SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval()); 
+%}
 
 %typemap(out) const char[ANY], char[ANY]
 %{  lua_pushstring(L,(const char *)$1); SWIG_arg++;%}
@@ -227,26 +251,27 @@ temp=($*1_ltype)lua_tonumber(L,$input); $1=&temp;%}
 
 %typemap(in) SWIGTYPE&
 %{
-  if (!SWIG_IsOK(SWIG_ConvertPtr(L,$input,(void**)&$1,$descriptor,$disown))){
-    SWIG_fail_ptr("$symname",$argnum,$descriptor);
-  }
+  ok &= sevalue_to_native($input, &$1, s.thisObject());
+  SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");
 %}
 
 %typemap(in) SWIGTYPE&&
 %{
-  if (!SWIG_IsOK(SWIG_ConvertPtr(L,$input,(void**)&$1,$descriptor,$disown))){
+  if (!SWIG_IsOK(SWIG_ConvertPtrMove222(L,$input,(void**)&$1,$descriptor,$disown))){
     SWIG_fail_ptr("$symname",$argnum,$descriptor);
   }
 %}
 
 // out is simple
 %typemap(out) SWIGTYPE*,SWIGTYPE&
-%{  ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);
+%{  // out 7  
+  ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);
     SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
     SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval()); %}
 
 %typemap(out) SWIGTYPE*,SWIGTYPE&&
-%{ ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);
+%{ // out8 
+  ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);
    SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
    SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval()); %}
 
@@ -377,82 +402,82 @@ parameters match which function
   $1 = lua_isnumber(L,$input);
 }
 
-%typecheck(SWIG_TYPECHECK_BOOL)
-    bool, const bool &
-{
-  $1 = lua_isboolean(L,$input);
-}
+// %typecheck(SWIG_TYPECHECK_BOOL)
+//     bool, const bool &
+// {
+//   $1 = lua_isboolean(L,$input);
+// }
 
 // special check for a char (string of length 1)
-%typecheck(SWIG_TYPECHECK_CHAR,fragment="SWIG_lua_isnilstring") char, const char& {
-  $1 = SWIG_lua_isnilstring(L,$input) && (lua_rawlen(L,$input)==1);
-}
+// %typecheck(SWIG_TYPECHECK_CHAR,fragment="SWIG_lua_isnilstring") char, const char& {
+//   $1 = SWIG_lua_isnilstring(L,$input) && (lua_rawlen(L,$input)==1);
+// }
 
-%typecheck(SWIG_TYPECHECK_STRING,fragment="SWIG_lua_isnilstring") char *, char[] {
-  $1 = SWIG_lua_isnilstring(L,$input);
-}
+// %typecheck(SWIG_TYPECHECK_STRING,fragment="SWIG_lua_isnilstring") char *, char[] {
+//   $1 = SWIG_lua_isnilstring(L,$input);
+// }
 
 %typemap(in) SWIGTYPE *self 
 %{ $1 = SE_THIS_OBJECT<$*ltype>(s);
    SE_PRECONDITION2($1, false, "%s: Invalid Native Object", __FUNCTION__); %}
 
-%typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE *, SWIGTYPE [] {
-  void *ptr;
-  if (SWIG_isptrtype(L,$input)==0 || SWIG_ConvertPtr61(L,$input, (void **) &ptr, $1_descriptor, 0)) {
-    $1 = 0;
-  } else {
-    $1 = 1;
-  }
-}
+// %typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE *, SWIGTYPE [] {
+//   void *ptr;
+//   if (SWIG_isptrtype(L,$input)==0 || SWIG_ConvertPtr61(L,$input, (void **) &ptr, $1_descriptor, 0)) {
+//     $1 = 0;
+//   } else {
+//     $1 = 1;
+//   }
+// }
 
-%typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE & {
-  void *ptr;
-  if (lua_isuserdata(L,$input)==0 || SWIG_ConvertPtr62(L,$input, (void **) &ptr, $1_descriptor, SWIG_POINTER_NO_NULL)) {
-    $1 = 0;
-  } else {
-    $1 = 1;
-  }
-}
+// %typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE & {
+//   void *ptr;
+//   if (lua_isuserdata(L,$input)==0 || SWIG_ConvertPtr62(L,$input, (void **) &ptr, $1_descriptor, SWIG_POINTER_NO_NULL)) {
+//     $1 = 0;
+//   } else {
+//     $1 = 1;
+//   }
+// }
 
-%typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE && {
-  void *ptr;
-  if (lua_isuserdata(L,$input)==0 || SWIG_ConvertPtr63(L,$input, (void **) &ptr, $1_descriptor, SWIG_POINTER_NO_NULL)) {
-    $1 = 0;
-  } else {
-    $1 = 1;
-  }
-}
+// %typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE && {
+//   void *ptr;
+//   if (lua_isuserdata(L,$input)==0 || SWIG_ConvertPtr63(L,$input, (void **) &ptr, $1_descriptor, SWIG_POINTER_NO_NULL)) {
+//     $1 = 0;
+//   } else {
+//     $1 = 1;
+//   }
+// }
 
-%typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE {
-  void *ptr;
-  if (lua_isuserdata(L,$input)==0 || SWIG_ConvertPtr64(L,$input, (void **) &ptr, $&1_descriptor, SWIG_POINTER_NO_NULL)) {
-    $1 = 0;
-  } else {
-    $1 = 1;
-  }
-}
+// %typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE {
+//   void *ptr;
+//   if (lua_isuserdata(L,$input)==0 || SWIG_ConvertPtr64(L,$input, (void **) &ptr, $&1_descriptor, SWIG_POINTER_NO_NULL)) {
+//     $1 = 0;
+//   } else {
+//     $1 = 1;
+//   }
+// }
 
-%typecheck(SWIG_TYPECHECK_VOIDPTR) void * {
-  void *ptr;
-  if (SWIG_isptrtype(L,$input)==0 || SWIG_ConvertPtr65(L,$input, (void **) &ptr, 0, 0)) {
-    $1 = 0;
-  } else {
-    $1 = 1;
-  }
-}
+// %typecheck(SWIG_TYPECHECK_VOIDPTR) void * {
+//   void *ptr;
+//   if (SWIG_isptrtype(L,$input)==0 || SWIG_ConvertPtr65(L,$input, (void **) &ptr, 0, 0)) {
+//     $1 = 0;
+//   } else {
+//     $1 = 1;
+//   }
+// }
 
-// Also needed for object pointers by const ref
-// eg const A* ref_pointer(A* const& a);
-// found in mixed_types.i
-%typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE *const&
-{
-  void *ptr;
-  if (SWIG_isptrtype(L,$input)==0 || SWIG_ConvertPtr66(L,$input, (void **) &ptr, $*descriptor, 0)) {
-    $1 = 0;
-  } else {
-    $1 = 1;
-  }
-}
+// // Also needed for object pointers by const ref
+// // eg const A* ref_pointer(A* const& a);
+// // found in mixed_types.i
+// %typecheck(SWIG_TYPECHECK_POINTER) SWIGTYPE *const&
+// {
+//   void *ptr;
+//   if (SWIG_isptrtype(L,$input)==0 || SWIG_ConvertPtr66(L,$input, (void **) &ptr, $*descriptor, 0)) {
+//     $1 = 0;
+//   } else {
+//     $1 = 1;
+//   }
+// }
 
 /* -----------------------------------------------------------------------------
  *                          Others

@@ -31,7 +31,7 @@ bool register_all_$jsname(se::Object* obj) {
 %}
 
 %fragment ("se_global_variables", "templates") %{
-    JSB_REGISTER_OBJECT_TYPE($jsclassname)
+    JSB_REGISTER_OBJECT_TYPE($jsclassname);
     extern se::Object *__jsb_$jsmangledname_proto; // NOLINT
     extern se::Class * __jsb_$jsmangledname_class; // NOLINT
 %}
