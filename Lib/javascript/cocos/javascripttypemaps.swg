@@ -28,39 +28,11 @@
 /* Javascript fragments for char* strings */
 //cjh %include <javascriptstrings.swg>
 
-/* ------------------------------------------------------------
- *  Unified typemap section
- * ------------------------------------------------------------ */
-
-//cjh #define SWIG_Object                     se::Value
-//cjh #define VOID_Object                     se::Value::Undefined
-
-/* append output */
-//cjh #define SWIG_AppendOutput(result, obj) 
-
-/* set constant */
-//cjh #define SWIG_SetConstant(name, obj)
-
-/* raise */
-//cjh #define SWIG_Raise(obj, type, desc) 
-
-/*cjh
-%insert("runtime") %{
-#define SWIG_JSC_FROM_DECL_ARGS(arg1)              (JSContextRef context, arg1)
-#define SWIG_JSC_FROM_CALL_ARGS(arg1)              (context, arg1)
-#define SWIG_JSC_AS_DECL_ARGS(arg1, arg2)          (JSContextRef context, arg1, arg2)
-#define SWIG_JSC_AS_CALL_ARGS(arg1, arg2)          (context, arg1, arg2)
-%}
-*/
-
-/* Include the unified typemap library */
-//cjh %include <typemaps/swigtypemaps.swg>
-
 
 /* -----------------------------------------------------------------------------
- * luatypemaps.swg
+ * javascripttypemaps.swg
  *
- * basic typemaps for Lua.
+ * basic typemaps for Javascript.
  * ----------------------------------------------------------------------------- */
 
 /* -----------------------------------------------------------------------------
@@ -75,30 +47,7 @@
    For the typemap(out), an additional SWIG_arg parameter must be incremented
    to reflect the number of values returned (normally SWIG_arg++; will do)
 */
-// numbers
-
-%typemap(default) int "$1 = 1230;"
-
-/* Set the input argument to point to a temporary variable */ 
-%typemap(in, numinputs=0) int *out (int temp) {
-$1 = &temp;
-}
-
-%typemap(argout) int *out {
-// Append output value $1 to $result ...
-  *out = $1;
-}
-
-
-
-// Get a list of integers 
-%typemap(in) int *items {
-int nitems = Length($input);
-$1 = (int *) malloc(sizeof(int)*nitems); }
-
-// Free the list
-%typemap(freearg) int *items {
-free($1); }
+// number
 
 %typemap(in,checkfn="lua_isnumber") int, short, long,
              signed char, float, double
@@ -121,7 +70,7 @@ free($1); }
              float,double
 %{
   // out 1
-   ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/); %}
+   ok &= nativevalue_to_se($1, s.rval(), s.thisObject() /*ctx*/); %}
 
 // we must also provide typemaps for primitives by const reference:
 // given a function:
@@ -148,7 +97,7 @@ free($1); }
 
 %typemap(out) const int&, const unsigned int&
 %{ // out 2
-  ok &= nativevalue_to_se(*$1, s.rval(), nullptr /*ctx*/);
+  ok &= nativevalue_to_se(*$1, s.rval(), s.thisObject() /*ctx*/);
   SE_PRECONDITION2(ok, false, "$symname, Error processing arguments"); 
 %}
 
@@ -169,9 +118,7 @@ free($1); }
 
 %typemap(out) enum SWIGTYPE (int32_t temp)
 %{  // out 4
-  ok &= nativevalue_to_se($1, temp, nullptr /*ctx*/);
-  SE_PRECONDITION2(ok, false, "$symname, Error processing arguments"); 
-  s.rval().setInt32(temp);%}
+  s.rval().setInt32(static_cast<int32_t>($1));%}
 
 // and const refs
 %typemap(in) const enum SWIGTYPE &($basetype temp)
@@ -191,7 +138,7 @@ free($1); }
 
 %typemap(out) bool
 %{// out 5
-  ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);%}
+  ok &= nativevalue_to_se($1, s.rval(), s.thisObject() /*ctx*/);%}
 
 // for const bool&, SWIG treats this as a const bool* so we must dereference it
 %typemap(in,checkfn="lua_isboolean") const bool& (bool temp)
@@ -245,18 +192,19 @@ free($1); }
 // the checkfn lua_isuserdata will only work for userdata
 // the checkfn SWIG_isptrtype will work for both userdata and nil
 %typemap(in) SWIGTYPE*,SWIGTYPE[]
-%{ 
+%{ // %typemap(in) SWIGTYPE*,SWIGTYPE[]
   ok &= sevalue_to_native($input, &$1, s.thisObject());
   SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor"); %}
 
-%typemap(in) SWIGTYPE&
-%{
-  ok &= sevalue_to_native($input, &$1, s.thisObject());
+%typemap(in) SWIGTYPE& ($*ltype temp)
+%{// %typemap(in) SWIGTYPE&
+  ok &= sevalue_to_native($input, &temp, s.thisObject());
   SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");
+  $1 = &temp;
 %}
 
 %typemap(in) SWIGTYPE&&
-%{
+%{// %typemap(in) SWIGTYPE&&
   if (!SWIG_IsOK(SWIG_ConvertPtrMove222(L,$input,(void**)&$1,$descriptor,$disown))){
     SWIG_fail_ptr("$symname",$argnum,$descriptor);
   }
@@ -264,14 +212,14 @@ free($1); }
 
 // out is simple
 %typemap(out) SWIGTYPE*,SWIGTYPE&
-%{  // out 7  
-  ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);
+%{  // %typemap(out) SWIGTYPE*,SWIGTYPE&
+  ok &= nativevalue_to_se($1, s.rval(), s.thisObject() /*ctx*/);
     SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
     SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval()); %}
 
 %typemap(out) SWIGTYPE*,SWIGTYPE&&
-%{ // out8 
-  ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);
+%{ // %typemap(out) SWIGTYPE*,SWIGTYPE&&
+  ok &= nativevalue_to_se($1, s.rval(), s.thisObject() /*ctx*/);
    SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
    SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval()); %}
 
@@ -289,23 +237,24 @@ free($1); }
 // passing objects by value
 // SWIG_ConvertPtr wants an object pointer (the $&ltype argp)
 // then dereferences it to get the object
-%typemap(in) SWIGTYPE ($&ltype argp)
+%typemap(in) SWIGTYPE //($&ltype argp)
 %{
-   if (!SWIG_IsOK(SWIG_ConvertPtrIn111(L,$input,(void**)&argp,$&descriptor,0))){
-     SWIG_fail_ptr("$symname",$argnum,$&descriptor);
-   }
-   $1 = *argp;
+  // value in
+  ok &= sevalue_to_native($input, &$1, s.thisObject());
+  SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor"); 
 %}
+
 
 // Also needed for object ptrs by const ref
 // eg A* const& ref_pointer(A* const& a);
 // found in mixed_types.i
 %typemap(in,checkfn="SWIG_isptrtype") SWIGTYPE *const&($*ltype temp)
-%{temp=($*ltype)SWIG_MustGetPtr(L,$input,$*descriptor,0,$argnum,"$symname");
+%{temp=($*ltype)SWIG_MustGetPtr111(L,$input,$*descriptor,0,$argnum,"$symname");
 $1=($1_ltype)&temp;%}
 
 %typemap(out) SWIGTYPE *const&
-%{SWIG_NewPointerObj333(L,*$1,$*descriptor,$owner); SWIG_arg++; %}
+%{ // %typemap(out) SWIGTYPE *const&
+  SWIG_NewPointerObj333(L,*$1,$*descriptor,$owner); SWIG_arg++; %}
 
 
 // DISOWN-ing typemaps
@@ -314,7 +263,8 @@ $1=($1_ltype)&temp;%}
 // use %apply SWIGTYPE* DISOWN {Foo* toDie};
 // you could just use %delobject, but this is more flexible
 %typemap(in,checkfn="SWIG_isptrtype") SWIGTYPE* DISOWN,SWIGTYPE DISOWN[]
-%{  if (!SWIG_IsOK(SWIG_ConvertPtrIn222(L,$input,(void**)&$1,$descriptor,SWIG_POINTER_DISOWN))){
+%{ // %typemap(in,checkfn="SWIG_isptrtype") SWIGTYPE* DISOWN,SWIGTYPE DISOWN[]
+   if (!SWIG_IsOK(SWIG_ConvertPtrIn222(L,$input,(void**)&$1,$descriptor,SWIG_POINTER_DISOWN))){
     SWIG_fail_ptr("$symname",$argnum,$descriptor);
   }
 %}
@@ -326,9 +276,10 @@ $1=($1_ltype)&temp;%}
 // this is because typemap(out) does not support local variables, like in typemap(in) does
 // and we need the $&1_ltype resultptr; to be declared
 %typemap(out) SWIGTYPE
-{
-  $&1_ltype resultptr = new $1_ltype((const $1_ltype &) $1);
-  SWIG_NewPointerObjHa1(L,(void *) resultptr,$&1_descriptor,1); SWIG_arg++;
+{ // %typemap(out) SWIGTYPE
+    ok &= nativevalue_to_se($1, s.rval(), s.thisObject() /*ctx*/);
+    SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
+    SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval());
 }
 
 // member function pointer
@@ -338,12 +289,14 @@ $1=($1_ltype)&temp;%}
 // therefore a special wrapping functions SWIG_ConvertMember() & SWIG_NewMemberObj() were written
 %typemap(in,checkfn="lua_isuserdata") SWIGTYPE (CLASS::*)
 %{
+  // %typemap(in,checkfn="lua_isuserdata") SWIGTYPE (CLASS::*)
   if (!SWIG_IsOK(SWIG_ConvertMember(L,$input,(void*)(&$1),sizeof($1),$descriptor)))
     SWIG_fail_ptr("$symname",$argnum,$descriptor);
 %}
 
 %typemap(out) SWIGTYPE (CLASS::*)
 %{
+  // %typemap(out) SWIGTYPE (CLASS::*)
   SWIG_NewMemberObj(L,(void*)(&$1),sizeof($1),$descriptor); SWIG_arg++;
 %}
 
@@ -356,7 +309,8 @@ A function void fn(void*) should take any kind of pointer as a parameter (just l
 but if it's an output, then it should be wrapped like any other SWIG object (using default typemap)
 */
 %typemap(in,checkfn="SWIG_isptrtype") void*
-%{$1=($1_ltype)SWIG_MustGetPtr(L,$input,0,0,$argnum,"$symname");%}
+%{  ok &= sevalue_to_native($input, &$1);
+    SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");%}
 
 /* long long is another special case:
 as lua only supports one numeric type (lua_Number), we will just
@@ -366,13 +320,6 @@ with the relevant operators.
 */
 %apply long {long long, signed long long, unsigned long long};
 %apply const long& {const long long&, const signed long long&, const unsigned long long&};
-
-/* It is possible to also pass a lua_State* into a function, so
-void fn(int a, float b, lua_State* s) is wrappable as
-> fn(1,4.3) -- note: the state is implicitly passed in
-*/
-%typemap(in, numinputs=0) lua_State* 
-%{$1 = L;%}
 
 
 

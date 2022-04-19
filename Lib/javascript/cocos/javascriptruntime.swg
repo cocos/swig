@@ -4,7 +4,7 @@
  * Javascript support code
  * ----------------------------------------------------------------------------- */
 
-%insert(header_file) %{
+%insert(header) %{
 #include "bindings/jswrapper/SeApi.h"
 #include "bindings/manual/jsb_conversions.h"
 #include "bindings/manual/jsb_global.h"

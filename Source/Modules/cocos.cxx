@@ -13,6 +13,8 @@
 
 #include "cparse.h"
 #include "swigmod.h"
+#include <vector>
+#include <string>
 
 namespace cc {
 
@@ -59,6 +61,63 @@ static bool js_template_enable_debug = false;
 #define MEMBER_FUNCTIONS "member_functions"
 #define STATIC_FUNCTIONS "static_functions"
 #define STATIC_VARIABLES "static_variables"
+
+static Node* getClass(Node* n) {
+    Node *parentNode = Getattr(n, "parentNode");
+    if (parentNode != nullptr) {
+        if (Cmp(Getattr(parentNode, "nodeType"), "class") == 0) {
+            return parentNode;
+        }
+
+        return getClass(parentNode);
+    }
+
+    return nullptr;
+}
+
+static std::string getPropertyName(Node* n) {
+    if (0 == Cmp(Getattr(n, "kind"), "variable")) {
+        String* access = Getattr(n, "access");
+        int needIgnore = GetFlag(n, "feature:ignore");
+        // ignore properties those name begin with '_'
+        if (!needIgnore && 0 == Cmp(access, "public")) {
+            return Char(Getattr(n, "name"));
+        }
+    }
+    return "";
+}
+
+static std::vector<std::string> getStructProperties(Node* n) {
+    std::vector<std::string> ret;
+    auto* nodeType = Getattr(n, "nodeType");
+    if (0 == Cmp(nodeType, "class")) {
+        auto* child = Getattr(n, "firstChild");
+        if (child != nullptr) {
+            auto name = getPropertyName(child);
+            if (!name.empty()) {
+                ret.emplace_back(name);
+            }
+
+            Node* cur = child;
+            Node* next = nullptr;
+            do {
+                next = Getattr(cur, "nextSibling");
+                if (next == nullptr) {
+                    break;
+                }
+
+                name = getPropertyName(next);
+                if (!name.empty()) {
+                    ret.emplace_back(name);
+                }
+
+                cur = next;
+            } while (true);
+        }
+    }
+
+    return ret;
+}
 
 /**
  * A convenience class to manage state variables for emitters.
@@ -159,10 +218,16 @@ public:
    */
     virtual int enterClass(Node *);
 
+    virtual int enterStruct(Node *n);
+
     /**
    * Invoked at the end of the classHandler.
    */
     virtual int exitClass(Node *) {
+        return SWIG_OK;
+    }
+
+    virtual int exitStruct(Node *n) {
         return SWIG_OK;
     }
 
@@ -839,6 +904,10 @@ int JSEmitter::enterClass(Node *n) {
     return SWIG_OK;
 }
 
+int JSEmitter::enterStruct(Node *n) {
+    return enterClass(n);
+}
+
 int JSEmitter::enterFunction(Node *n) {
     state.function(RESET);
     state.function(NAME, Getattr(n, "sym:name"));
@@ -911,6 +980,8 @@ int JSEmitter::emitCtor(Node *n) {
 
     t_ctor.replace("$jswrapper", wrap_name)
         .replace("$jsmangledtype", state.clazz(TYPE_MANGLED))
+        .replace("$jsmangledname", state.clazz(NAME_MANGLED))
+        .replace("$jsname", state.clazz(NAME))
         .replace("$jslocals", wrapper->locals)
         .replace("$jscode", wrapper->code)
         .replace("$jsargcount", Getattr(n, ARGCOUNT))
@@ -1194,19 +1265,6 @@ int JSEmitter::emitConstant(Node *n) {
     return SWIG_OK;
 }
 
-static Node* getClass(Node* n) {
-    Node *parentNode = Getattr(n, "parentNode");
-    if (parentNode != nullptr) {
-        if (Cmp(Getattr(parentNode, "nodeType"), "class") == 0) {
-            return parentNode;
-        }
-
-        return getClass(parentNode);
-    }
-
-    return nullptr;
-}
-
 int JSEmitter::emitFunction(Node *n, bool is_member, bool is_static) {
     Wrapper *wrapper = NewWrapper();
     Template t_function(getTemplate("js_function"));
@@ -1217,14 +1275,17 @@ int JSEmitter::emitFunction(Node *n, bool is_member, bool is_static) {
     String *iname = Copy(Getattr(n, "name"));
 
     String *symname = Getattr(n, "sym:name");
-    const char* symname_str = Char(symname);
-    printf("cjh function symname: %s\n", symname_str);
 
     if (is_member) {
-        Node *parentNode = getClass(n);
-        if (parentNode != nullptr) {
-            Insert(iname, 0, "::");
-            Insert(iname, 0, Getattr(parentNode, "name"));
+        if (is_static) {
+            Append(iname, "_static");
+        }
+        else {
+            Node *parentNode = getClass(n);
+            if (parentNode != nullptr) {
+                Insert(iname, 0, "::");
+                Insert(iname, 0, Getattr(parentNode, "name"));
+            }
         }
     }
 
@@ -1546,7 +1607,7 @@ private:
 };
 
 CocosEmitter::CocosEmitter()
-: JSEmitter(JSEmitter::Cocos), NULL_STR(NewString("NULL")), VETO_SET(NewString("JS_veto_set_variable")) {
+: JSEmitter(JSEmitter::Cocos), NULL_STR(NewString("NULL")), VETO_SET(NewString("js_veto_set_variable")) {
 }
 
 CocosEmitter::~CocosEmitter() {
@@ -1592,16 +1653,16 @@ void CocosEmitter::marshalInputArgs(Node *n, ParmList *parms, Wrapper *wrapper, 
             case Getter:
             case Function:
                 if (is_member && !is_static && i == 0) {
-                    Printv(arg, "thisObject", 0);
+                    Printv(arg, "args[0]", 0);
                 } else {
                     Printf(arg, "args[%d]", i - startIdx);
                 }
                 break;
             case Setter:
                 if (is_member && !is_static && i == 0) {
-                    Printv(arg, "thisObject", 0);
+                    Printv(arg, "args[0]", 0);
                 } else {
-                    Printv(arg, "value", 0);
+                    Printv(arg, "args[0]", 0);
                 }
                 break;
             case Ctor:
@@ -1837,6 +1898,7 @@ int CocosEmitter::exitClass(Node *n) {
     if (GetFlag(state.clazz(), IS_ABSTRACT)) {
         Template t_veto_ctor(getTemplate("js_veto_ctor"));
         t_veto_ctor.replace("$jswrapper", state.clazz(CTOR))
+            .replace("$jsmangledname", state.clazz(NAME_MANGLED))
             .replace("$jsname", state.clazz(NAME))
             .pretty_print(s_wrappers);
     }
@@ -1894,7 +1956,29 @@ int CocosEmitter::exitClass(Node *n) {
     /* Note: this makes sure that there is a swig_type added for this class */
     SwigType_remember_clientdata(state.clazz(TYPE_MANGLED), NewString("0"));
 
+    bool isStruct = 0 == Cmp(Getattr(n, "kind"), "struct");
+    if (isStruct) {
+        String* propertyConversionCode = NewString("");
+        auto propertyNames = getStructProperties(n);
+        for (const auto& propertyName : propertyNames) {
+            Template t_jsc_struct_prop_snippet(getTemplate("jsc_struct_prop_snippet"));
+            t_jsc_struct_prop_snippet.replace("$field_name", propertyName.c_str())
+                .pretty_print(propertyConversionCode);
+        }
+
+        Template jsc_struct_prop_conversion(getTemplate("jsc_struct_prop_conversion"));
+        jsc_struct_prop_conversion.replace("$jsclassname", jsclassname)
+            .replace("$jscode", propertyConversionCode)
+            .pretty_print(s_wrappers);
+
+        Delete(propertyConversionCode);
+    }
+
     Printv(s_wrappers, state.globals(INITIALIZER), 0); //cjh added
+
+    // sevalue_to_native conversion for struct
+
+    //
 
     /* adds a class registration statement to initializer function */
     Template t_registerclass(getTemplate("jsc_class_registration"));
@@ -1907,6 +1991,12 @@ int CocosEmitter::exitClass(Node *n) {
     t_headerRegisterClass.replace("$jsclassname", jsclassname)
         .replace("$jsmangledname", state.clazz(NAME_MANGLED))
         .pretty_print(state.globals(HEADER_REGISTER_CLASSES));
+
+    if (isStruct) {
+        Template jsc_struct_prop_conversion_declare(getTemplate("jsc_struct_prop_conversion_declare"));
+        jsc_struct_prop_conversion_declare.replace("$jsclassname", jsclassname)
+            .pretty_print(state.globals(HEADER_REGISTER_CLASSES));
+    }
 
     Delete(jsclassname);
 

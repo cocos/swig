@@ -25,7 +25,7 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
     s.thisObject()->setPrivateObject(ptr);
     return true;
 }
-SE_BIND_CTOR($jswrapper) %}
+SE_BIND_CTOR($jswrapper, __jsb_$jsmangledname_class, js_delete_$jsname)%}
 
 /* -----------------------------------------------------------------------------
  * js_veto_ctor:  a vetoing ctor for abstract classes
@@ -38,10 +38,9 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
 {
     // js_veto_ctor
     SE_REPORT_ERROR("Class $jsname can not be instantiated");
-fail:
-    return 0;
+    return false;
 }
-SE_BIND_CTOR($jswrapper) %}
+SE_BIND_CTOR($jswrapper, __jsb_$jsmangledname_class, js_delete_$jsname)%}
 
 /* -----------------------------------------------------------------------------
  * js_ctor_dispatcher:  dispatcher for overloaded constructors
@@ -64,7 +63,7 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
     SE_REPORT_ERROR("Illegal arguments for construction of $jsname");
     return false;
 }
-SE_BIND_CTOR($jswrapper, __jsb_$jsmangledname_class, js_delete_$jsname) %}
+SE_BIND_CTOR($jswrapper, __jsb_$jsmangledname_class, js_delete_$jsname)%}
 
 /* -----------------------------------------------------------------------------
  * js_overloaded_ctor:  template for wrapping a ctor.
@@ -143,7 +142,7 @@ SE_BIND_FINALIZE_FUNC($jswrapper) %}
 %{
 static bool $jswrapper(se::State& s)
 {
-    bool ok = true;
+    CC_UNUSED bool ok = true;
     $jslocals
     $jscode
     return true;
@@ -160,7 +159,9 @@ SE_BIND_PROP_GET($jswrapper) %}
 %{
 static bool $jswrapper(se::State& s)
 {
-    bool ok = true;
+    CC_UNUSED bool ok = true;
+    const auto& args = s.args();
+    size_t argc = args.size();
     $jslocals
     $jscode
     return true;
@@ -208,7 +209,7 @@ static bool $jswrapper(se::State& s)
   size_t argc = args.size();
   $jslocals
   $jscode
-  SE_REPORT_ERROR("wrong number of arguments: %d, was expecting %d", (int)argc, $jsargcount);
+  SE_REPORT_ERROR("wrong number of arguments: %d", (int)argc);
   return false;
 }
 SE_BIND_FUNC($jswrapper) %}
@@ -223,9 +224,10 @@ SE_BIND_FUNC($jswrapper) %}
 %{
 static bool $jswrapper(se::State& s)
 {// js_overloaded_function
+  CC_UNUSED bool ok = true;
+  const auto& args = s.args();
   $jslocals
   $jscode
-  *p_result = jsresult;
   return true;
 }%}
 
@@ -277,8 +279,8 @@ static bool $jswrapper(se::State& s)
  * ----------------------------------------------------------------------------- */
 %fragment ("jsc_class_declaration", "templates")
 %{
-se::Class* __jsb_$jsmangledname_class;
-se::Object* __jsb_$jsmangledname_proto;
+se::Class* __jsb_$jsmangledname_class = nullptr;
+se::Object* __jsb_$jsmangledname_proto = nullptr;
 SE_DECLARE_FINALIZE_FUNC(js_delete_$jsname) %}
 
 /* -----------------------------------------------------------------------------
@@ -331,3 +333,33 @@ bool js_register_$jsmangledname(se::Object* obj) {
 %{$jsglobalvariables
   $jsglobalfunctions %}
 
+%fragment ("jsc_struct_prop_snippet", "templates") %{
+    json->getProperty("$field_name", &field, true);
+    if (!field.isNullOrUndefined()) {
+        ok &= sevalue_to_native(field, &(to->$field_name), ctx);
+    }
+%}
+
+
+%fragment ("jsc_struct_prop_conversion_declare", "templates") %{
+template<>
+bool sevalue_to_native(const se::Value &from, $jsclassname * to, se::Object *ctx);
+%}
+
+%fragment ("jsc_struct_prop_conversion", "templates") %{
+template<>
+bool sevalue_to_native(const se::Value &from, $jsclassname * to, se::Object *ctx)
+{
+    assert(from.isObject());
+    se::Object *json = from.toObject();
+    auto* data = reinterpret_cast<$jsclassname*>(json->getPrivateData());
+    if (data) {
+        *to = *data;
+        return true;
+    }
+    se::Value field;
+    bool ok = true;
+    $jscode
+    return ok;
+}
+%}
