@@ -191,8 +191,13 @@
 // This will only be allowed for pointers & arrays, not refs or by value
 // the checkfn lua_isuserdata will only work for userdata
 // the checkfn SWIG_isptrtype will work for both userdata and nil
-%typemap(in) SWIGTYPE*,SWIGTYPE[]
-%{ // %typemap(in) SWIGTYPE*,SWIGTYPE[]
+%typemap(in) SWIGTYPE*
+%{ // %typemap(in) SWIGTYPE*
+  ok &= sevalue_to_native($input, &$1, s.thisObject());
+  SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor"); %}
+
+%typemap(in) SWIGTYPE[]
+%{ // %typemap(in) SWIGTYPE[]
   ok &= sevalue_to_native($input, &$1, s.thisObject());
   SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor"); %}
 
@@ -211,14 +216,20 @@
 %}
 
 // out is simple
-%typemap(out) SWIGTYPE*,SWIGTYPE&
-%{  // %typemap(out) SWIGTYPE*,SWIGTYPE&
+%typemap(out) SWIGTYPE&
+%{  // %typemap(out) SWIGTYPE&
   ok &= nativevalue_to_se($1, s.rval(), s.thisObject() /*ctx*/);
     SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
     SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval()); %}
 
-%typemap(out) SWIGTYPE*,SWIGTYPE&&
-%{ // %typemap(out) SWIGTYPE*,SWIGTYPE&&
+%typemap(out) SWIGTYPE*
+%{ // %typemap(out) SWIGTYPE*
+  ok &= nativevalue_to_se($1, s.rval(), s.thisObject() /*ctx*/);
+   SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
+   SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval()); %}
+
+%typemap(out) SWIGTYPE&&
+%{ // %typemap(out) SWIGTYPE&&
   ok &= nativevalue_to_se($1, s.rval(), s.thisObject() /*ctx*/);
    SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
    SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval()); %}
@@ -239,7 +250,7 @@
 // then dereferences it to get the object
 %typemap(in) SWIGTYPE //($&ltype argp)
 %{
-  // value in
+  // %typemap(in) SWIGTYPE value in
   ok &= sevalue_to_native($input, &$1, s.thisObject());
   SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor"); 
 %}

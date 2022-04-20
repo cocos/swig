@@ -177,7 +177,8 @@ String *Swig_wrapped_member_var_type(SwigType *t, int varcref) {
 	return Copy(ty);
       }
     } else {
-      SwigType_add_pointer(ty);
+//cjh      SwigType_add_pointer(ty);
+        SwigType_add_pointer(ty);
     }
   }
   return ty;
@@ -193,7 +194,8 @@ static String *Swig_wrapped_var_deref(SwigType *t, const_String_or_char_ptr name
 	return NewStringf("%s", name);
       }
     } else {
-      return NewStringf("*%s", name);
+//cjh        return NewStringf("*%s", name);
+        return NewStringf("*%s", name);
     }
   } else {
     return SwigType_rcaststr(t, name);
@@ -205,7 +207,8 @@ static String *Swig_wrapped_var_assign(SwigType *t, const_String_or_char_ptr nam
     if (varcref) {
       return NewStringf("%s", name);
     } else {
-      return NewStringf("&%s", name);
+//cjh      return NewStringf("&%s", name);
+        return NewStringf("&%s", name);
     }
   } else {
     return SwigType_lcaststr(t, name);
@@ -295,7 +298,7 @@ int Swig_cargs(Wrapper *w, ParmList *p) {
 	  Delete(defvalue);
 	}
       } else if (!pvalue && ((tycode == T_POINTER) || (tycode == T_STRING) || (tycode == T_WSTRING))) {
-	pvalue = (String *) "0";
+	pvalue = (String *) "NULL"; //cjh change from "0" to "NULL"
       }
       if (!altty) {
 	local = Swig_clocal(pt, lname, pvalue);

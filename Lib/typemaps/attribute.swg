@@ -26,20 +26,23 @@
   }
 #if defined(__cplusplus) && defined(SWIG_ATTRIBUTE_TEMPLATE)
   %{
-    template < class C > inline AttributeType %mangle(Class) ##_## AttributeName ## _get(const C* self_) {
-      return GetMethodCall;
-    }
-    template < class C > inline AttributeType %mangle(Class) ##_## AttributeName ## _get(C* self_) {
-      return GetMethodCall;
-    }
-    template < class C > inline void %mangle(Class) ##_## AttributeName ## _set(C* self_, AttributeType val_) {
-      SetMethodCall;
-    }
+template < class C >
+inline AttributeType %mangle(Class) ##_## AttributeName ## _get(const C* self_) {
+    return GetMethodCall;
+}
+template < class C >
+inline AttributeType %mangle(Class) ##_## AttributeName ## _get(C* self_) {
+    return GetMethodCall;
+}
+template < class C >
+inline void %mangle(Class) ##_## AttributeName ## _set(C* self_, AttributeType val_) {
+    SetMethodCall;
+}
   %}
 #else
   %{
-    #define %mangle(Class) ##_## AttributeName ## _get(self_) GetMethodCall
-    #define %mangle(Class) ##_## AttributeName ## _set(self_, val_) SetMethodCall
+#define %mangle(Class) ##_## AttributeName ## _get(self_) GetMethodCall
+#define %mangle(Class) ##_## AttributeName ## _set(self_, val_) SetMethodCall
   %}
 #endif
 %enddef
@@ -53,16 +56,18 @@
   }
 #if defined(__cplusplus) && defined(SWIG_ATTRIBUTE_TEMPLATE)
   %{
-    template < class C > inline AttributeType %mangle(Class) ##_## AttributeName ## _get(const C* self_) {
-      return GetMethodCall;
-    }
-    template < class C > inline AttributeType %mangle(Class) ##_## AttributeName ## _get(C* self_) {
-      return GetMethodCall;
-    }
+template < class C >
+inline AttributeType %mangle(Class) ##_## AttributeName ## _get(const C* self_) {
+    return GetMethodCall;
+}
+template < class C >
+inline AttributeType %mangle(Class) ##_## AttributeName ## _get(C* self_) {
+    return GetMethodCall;
+}
   %}
 #else
   %{
-    #define %mangle(Class) ##_## AttributeName ## _get(self_) GetMethodCall
+#define %mangle(Class) ##_## AttributeName ## _get(self_) GetMethodCall
   %}
 #endif
 %enddef

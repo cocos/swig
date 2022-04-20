@@ -22,28 +22,38 @@
 %}
 %enddef
 
-/* Set the input argument to point to a temporary variable */ 
-%typemap(in, numinputs=0) int *out (int temp) {
-$1 = &temp;
-}
+struct MySize final {
+    float width;
+    float height;
+};
 
-%typemap(argout) int *out {
-// Append output value $1 to $result ...
-  *out = $1;
-}
+struct MyRect {
+    MySize size;
+    MySize* size2;
+};
+
+// /* Set the input argument to point to a temporary variable */ 
+// %typemap(in, numinputs=0) int *out (int temp) {
+// $1 = &temp;
+// }
+
+// %typemap(argout) int *out {
+// // Append output value $1 to $result ...
+//   *out = $1;
+// }
 
 
 
-// Get a list of integers 
-%typemap(in) int *items {
-int nitems = Length($input);
-$1 = (int *) malloc(sizeof(int)*nitems); }
+// // Get a list of integers 
+// %typemap(in) int *items {
+// int nitems = Length($input);
+// $1 = (int *) malloc(sizeof(int)*nitems); }
 
-// Free the list
-%typemap(freearg) int *items {
-free($1); }
+// // Free the list
+// %typemap(freearg) int *items {
+// free($1); }
 
-void fooVecorInt(const std::vector<int>& arr);
+// void fooVecorInt(const std::vector<int>& arr);
 
 // /* Let's just grab the original header file here */
 // // %include "example.h"

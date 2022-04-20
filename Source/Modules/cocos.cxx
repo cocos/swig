@@ -119,6 +119,15 @@ static std::vector<std::string> getStructProperties(Node* n) {
     return ret;
 }
 
+static void convertToMangledName(String* name) {
+    Replaceall(name, "::", "_");
+    Replaceall(name, "<", "_");
+    Replaceall(name, ">", "");
+    Replaceall(name, " ", "");
+    Replaceall(name, ",", "_");
+    Replaceall(name, "*", "_");
+}
+
 /**
  * A convenience class to manage state variables for emitters.
  * The implementation delegates to SWIG Hash DOHs and provides
@@ -218,16 +227,10 @@ public:
    */
     virtual int enterClass(Node *);
 
-    virtual int enterStruct(Node *n);
-
     /**
    * Invoked at the end of the classHandler.
    */
     virtual int exitClass(Node *) {
-        return SWIG_OK;
-    }
-
-    virtual int exitStruct(Node *n) {
         return SWIG_OK;
     }
 
@@ -872,10 +875,7 @@ int JSEmitter::enterClass(Node *n) {
     String *mangled_name = NewString("");
     //cjh
     Printf(mangled_name, "%s", Getattr(n, "classtype"));
-    Replaceall(mangled_name, "::", "_");
-    Replaceall(mangled_name, "<", "_");
-    Replaceall(mangled_name, ">", "");
-    Replaceall(mangled_name, " ", "");
+    convertToMangledName(mangled_name);
     //
 
     // Printf(mangled_name, "%s_%s", Getattr(current_namespace, NAME_MANGLED), Getattr(n, "sym:name"));
@@ -902,10 +902,6 @@ int JSEmitter::enterClass(Node *n) {
     SetFlag(state.clazz(), IS_ABSTRACT);
 
     return SWIG_OK;
-}
-
-int JSEmitter::enterStruct(Node *n) {
-    return enterClass(n);
 }
 
 int JSEmitter::enterFunction(Node *n) {
@@ -1903,8 +1899,7 @@ int CocosEmitter::exitClass(Node *n) {
             .pretty_print(s_wrappers);
     }
 
-    /* adds a class template statement to initializer function */
-    Template t_classtemplate(getTemplate("jsc_class_definition"));
+
 
     /* prepare registration of base class */
     String *jsclass_inheritance = NewString("");
@@ -1912,7 +1907,7 @@ int CocosEmitter::exitClass(Node *n) {
     if (base_class != NULL) {
         String *baseClassNameMangled = NewString("");
         Printf(baseClassNameMangled, "%s", Getattr(base_class, "classtype"));
-        Replaceall(baseClassNameMangled, "::", "_");
+        convertToMangledName(baseClassNameMangled);
 
         Template t_inherit(getTemplate("jsc_class_inherit"));
         t_inherit.replace("$jsmangledname", state.clazz(NAME_MANGLED))
@@ -1930,10 +1925,12 @@ int CocosEmitter::exitClass(Node *n) {
             .pretty_print(jsclass_inheritance);
     }
 
-    String* jsclassname = Copy(Getattr(n, "name"));
+    String* jsclassname = Copy(Getattr(n, "classtype"));
     Replaceall(jsclassname, "(", "");
     Replaceall(jsclassname, ")", "");
 
+    /* adds a class template statement to initializer function */
+    Template t_classtemplate(getTemplate("jsc_class_definition"));
     t_classtemplate.replace("$jsmangledname", state.clazz(NAME_MANGLED))
         .replace("$jsclassname", jsclassname)
         .replace("$jsname", state.clazz(NAME))

@@ -344,6 +344,9 @@ bool js_register_$jsmangledname(se::Object* obj) {
 %fragment ("jsc_struct_prop_conversion_declare", "templates") %{
 template<>
 bool sevalue_to_native(const se::Value &from, $jsclassname * to, se::Object *ctx);
+
+template<>
+bool sevalue_to_native(const se::Value &from, $jsclassname ** to, se::Object *ctx);
 %}
 
 %fragment ("jsc_struct_prop_conversion", "templates") %{
@@ -361,5 +364,17 @@ bool sevalue_to_native(const se::Value &from, $jsclassname * to, se::Object *ctx
     bool ok = true;
     $jscode
     return ok;
+}
+
+template<>
+bool sevalue_to_native(const se::Value &from, $jsclassname ** to, se::Object *ctx) {
+    static $jsclassname result;
+    bool ret = sevalue_to_native(from, &result, ctx);
+    if (ret) {
+      *to = &result;
+    } else {
+      *to = nullptr;
+    }
+    return ret;
 }
 %}

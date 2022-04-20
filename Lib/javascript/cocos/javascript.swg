@@ -6,6 +6,8 @@
 
 %include <typemaps/swigmacros.swg>
 
+%include <attribute.i>
+
 %include <javascripttypemaps.swg>
 
 %include <javascriptruntime.swg>
