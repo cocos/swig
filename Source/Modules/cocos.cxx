@@ -15,6 +15,7 @@
 #include "swigmod.h"
 #include <vector>
 #include <string>
+#include <sstream>
 
 namespace cc {
 
@@ -62,17 +63,52 @@ static bool js_template_enable_debug = false;
 #define STATIC_FUNCTIONS "static_functions"
 #define STATIC_VARIABLES "static_variables"
 
-static Node* getClass(Node* n) {
-    Node *parentNode = Getattr(n, "parentNode");
+static std::string join(const std::vector<std::string>& v, const std::string& c) {
+    std::stringstream s;
+    for (auto p = v.begin(); p != v.end(); ++p) {
+        s << *p;
+        if (p != v.end() - 1) {
+            s << c;
+        }
+    }
+    return s.str();
+}
+
+static Node* getParentNodeByNodeType(Node* n, const char* nodeType) {
+    Node *parentNode = parentNode(n);
     if (parentNode != nullptr) {
-        if (Cmp(Getattr(parentNode, "nodeType"), "class") == 0) {
+        if (0 == Cmp(nodeType(parentNode), nodeType)) {
             return parentNode;
         }
 
-        return getClass(parentNode);
+        return getParentNodeByNodeType(parentNode, nodeType);
     }
 
     return nullptr;
+}
+
+static Node* getClassNode(Node* n) {
+    return getParentNodeByNodeType(n, "class");
+}
+
+static Node* getNamespaceNode(Node* n) {
+    return getParentNodeByNodeType(n, "namespace");
+}
+
+static std::vector<std::string> getNamespaceNameArray(Node* n) {
+    std::vector<std::string> namespaceArray;
+    Node* curNode = n;
+    do {
+        Node* nsNode = getNamespaceNode(curNode);
+        if (nsNode == nullptr) {
+            break;
+        }
+
+        namespaceArray.insert(std::begin(namespaceArray), Char(Getattr(nsNode, "sym:name")));
+        curNode = nsNode;
+    } while (true);
+
+    return namespaceArray;
 }
 
 static std::string getPropertyName(Node* n) {
@@ -1268,30 +1304,28 @@ int JSEmitter::emitFunction(Node *n, bool is_member, bool is_static) {
     bool is_overloaded = GetFlag(n, "sym:overloaded") != 0;
 
     // prepare the function wrapper name
-    String *iname = Copy(Getattr(n, "name"));
+    String *iname = Copy(Getattr(n, "sym:name"));
 
-    String *symname = Getattr(n, "sym:name");
+    auto namespaceNameArray = getNamespaceNameArray(n);
+    if (!namespaceNameArray.empty()) {
+        std::string namespaceName = join(namespaceNameArray, "_");
+        Insert(iname, 0, "_");
+        Insert(iname, 0, namespaceName.c_str());
+    }
 
     if (is_member) {
         if (is_static) {
             Append(iname, "_static");
         }
-        else {
-            Node *parentNode = getClass(n);
-            if (parentNode != nullptr) {
-                Insert(iname, 0, "::");
-                Insert(iname, 0, Getattr(parentNode, "name"));
-            }
-        }
     }
 
-    Replaceall(iname, "::", "_");
     String *wrap_name = Swig_name_wrapper(iname);
 
     if (is_overloaded) {
         t_function = getTemplate("js_overloaded_function");
         Append(wrap_name, Getattr(n, "sym:overname"));
     }
+
     Setattr(n, "wrap:name", wrap_name);
     state.function(WRAPPER_NAME, wrap_name);
 

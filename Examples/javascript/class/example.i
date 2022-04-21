@@ -22,15 +22,38 @@
 %}
 %enddef
 
-struct MySize final {
-    float width;
-    float height;
-};
+// struct MySize final {
+//     float width;
+//     float height;
+// };
 
-struct MyRect {
-    MySize size;
-    MySize* size2;
-};
+// struct MyRect {
+//     MySize size;
+//     MySize* size2;
+// };
+
+%rename(globalFooFloat) globalFoo(float);
+
+void globalFoo(int a);
+void globalFoo(float a);
+
+namespace MyNS { namespace subns { namespace ns3 {
+    %rename(memberFooInClassFloat) MyClassA::memberFooInClass(float);
+    %rename(staticFooInClassFloat) MyClassA::staticFooInClass(float);
+    %rename(globalFooInNSFloat) globalFooInNS(float);
+
+    void globalFooInNS(float a);
+    void globalFooInNS(int a);
+
+    class MyClassA {
+    public:
+        static void staticFooInClass(bool a);
+        static void staticFooInClass(float a);
+        void memberFooInClass(int a);
+        void memberFooInClass(float a);
+    };
+}}}
+
 
 // /* Set the input argument to point to a temporary variable */ 
 // %typemap(in, numinputs=0) int *out (int temp) {
