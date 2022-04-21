@@ -1,5 +1,5 @@
 /* File : example.i */
-%module example
+%module(target_namespace="MyTargetNS") example
 
 // %include <std_string.i>
 // %include <std_vector.i>

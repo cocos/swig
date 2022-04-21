@@ -1634,6 +1634,7 @@ private:
     String *s_header{};
     String *s_header_file{};
     String *s_init{};
+    String *s_targetNamespace{};
 };
 
 CocosEmitter::CocosEmitter()
@@ -1725,6 +1726,19 @@ void CocosEmitter::marshalInputArgs(Node *n, ParmList *parms, Wrapper *wrapper, 
 int CocosEmitter::initialize(Node *n) {
     JSEmitter::initialize(n);
 
+    // Get any options set in the module directive
+    Node *moduleNode = Getattr(n, "module");
+    Node *optionsnode = Getattr(moduleNode, "options");
+    if (optionsnode != nullptr) {
+        if (Getattr(optionsnode, "target_namespace")) {
+            s_targetNamespace = Copy(Getattr(optionsnode, "target_namespace"));
+        }
+    }
+
+    if (s_targetNamespace == nullptr) {
+        s_targetNamespace = Copy(Getattr(moduleNode, "name"));
+    }
+
     Swig_name_register("wrapper", "js_%f");
 
     /* Get the output file name */
@@ -1790,7 +1804,8 @@ int CocosEmitter::dump(Node *n) {
 
     // compose the initializer function using a template
     Template initializer(getTemplate("js_initializer"));
-    initializer.replace("$jsname", module)
+    initializer.replace("$js_module_name", module)
+        .replace("$js_namespace", s_targetNamespace)
         .replace("$jsregisterclasses", state.globals(REGISTER_CLASSES))
         .replace("$jsregisternamespaces", state.globals(REGISTER_NAMESPACES))
         .pretty_print(s_init);
@@ -1817,6 +1832,7 @@ int CocosEmitter::close() {
     Delete(namespaces);
     Delete(f_wrap_cpp);
     Delete(f_wrap_h);
+    Delete(s_targetNamespace);
     return SWIG_OK;
 }
 

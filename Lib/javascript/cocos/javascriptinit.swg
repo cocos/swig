@@ -12,14 +12,14 @@
  *   - $jsregisternamespaces:     part with code for registration of namespaces
  * ----------------------------------------------------------------------------- */
 %fragment ("js_initializer", "templates") %{
-bool register_all_$jsname(se::Object* obj) {
+bool register_all_$js_module_name(se::Object* obj) {
     // Get the ns
     se::Value nsVal;
-    if (!obj->getProperty("$jsname", &nsVal, true))
+    if (!obj->getProperty("$js_namespace", &nsVal, true))
     {
         se::HandleObject jsobj(se::Object::createPlainObject());
         nsVal.setObject(jsobj);
-        obj->setProperty("$jsname", nsVal);
+        obj->setProperty("$js_namespace", nsVal);
     }
     se::Object* ns = nsVal.toObject();
     /* Register classes */
