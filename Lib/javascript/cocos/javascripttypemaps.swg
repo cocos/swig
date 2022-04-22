@@ -49,17 +49,14 @@
 */
 // number
 
-%typemap(in,checkfn="lua_isnumber") int, short, long,
-             signed char, float, double
-%{ 
+%typemap(in) int, short, long, signed char, float, double
+%{// %typemap(in) int, short, long, signed char, float, double
   ok &= sevalue_to_native($input, &$1, nullptr);
   SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor"); %}
  
 // additional check for unsigned numbers, to not permit negative input
-%typemap(in,checkfn="lua_isnumber") unsigned int,
-             unsigned short, unsigned long, unsigned char
-%{
-  // SWIG_contract_assert((lua_tonumber(L,$input)>=0),"number must not be negative");
+%typemap(in) unsigned int, unsigned short, unsigned long, unsigned char
+%{// %typemap(in) unsigned int, unsigned short, unsigned long, unsigned char
   ok &= sevalue_to_native($input, &$1, nullptr);
   SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");
 %}
@@ -112,7 +109,8 @@
    VC++ .net will not allow a cast from lua_Number(double) to enum directly.
 */
 %typemap(in) enum SWIGTYPE (int32_t temp)
-%{ ok &= sevalue_to_native($input, &temp);
+%{ // %typemap(in) enum SWIGTYPE (int32_t temp)
+   ok &= sevalue_to_native($input, &temp);
    SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");
    $1 = ($ltype)temp;%}
 
@@ -122,10 +120,12 @@
 
 // and const refs
 %typemap(in) const enum SWIGTYPE &($basetype temp)
-%{ temp=($basetype)(int)lua_tonumber(L,$input); $1=&temp;%}
+%{ // %typemap(in) const enum SWIGTYPE &
+ temp=($basetype)(int)lua_tonumber(L,$input); $1=&temp;%}
 
 %typemap(in) const enum SWIGTYPE &&($basetype temp)
-%{ temp=($basetype)(int)lua_tonumber(L,$input); $1=&temp;%}
+%{ // %typemap(in) const enum SWIGTYPE && 
+  temp=($basetype)(int)lua_tonumber(L,$input); $1=&temp;%}
 
 %typemap(out) const enum SWIGTYPE &
 %{  lua_pushnumber(L, (lua_Number) *$1); SWIG_arg++;%}
@@ -133,8 +133,9 @@
 %{  lua_pushnumber(L, (lua_Number) *$1); SWIG_arg++;%}
 
 %typemap(in) bool
-%{ ok &= sevalue_to_native($input, &$1);
-   SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor"); %}
+%{ // %typemap(in) bool
+  ok &= sevalue_to_native($input, &$1);
+  SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor"); %}
 
 %typemap(out) bool
 %{// out 5
@@ -286,12 +287,12 @@ $1=($1_ltype)&temp;%}
 // Note: the brackets are {...} and not %{..%}, because we want them to be included in the wrapper
 // this is because typemap(out) does not support local variables, like in typemap(in) does
 // and we need the $&1_ltype resultptr; to be declared
-%typemap(out) SWIGTYPE
-{ // %typemap(out) SWIGTYPE
+%typemap(out) SWIGTYPE 
+%{ // %typemap(out) SWIGTYPE
     ok &= nativevalue_to_se($1, s.rval(), s.thisObject() /*ctx*/);
     SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
     SE_HOLD_RETURN_VALUE($1, s.thisObject(), s.rval());
-}
+%}
 
 // member function pointer
 // a member fn ptr is not 4 bytes like a normal pointer, but 8 bytes (at least on mingw)

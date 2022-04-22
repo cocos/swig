@@ -22,14 +22,26 @@
 %}
 %enddef
 
-// struct MySize final {
-//     float width;
-//     float height;
+// struct StaticPropTest {
+//     static float staticFloatProp;
 // };
 
-// struct MyRect {
-//     MySize size;
-//     MySize* size2;
+struct MySize {
+    float width;
+// float height;
+};
+
+
+%attribute(MyRect, MySize, size, getSize, setSize);
+struct MyRect {
+    // MySize size;
+    void setSize(const MySize& size);
+    const MySize& getSize() const;
+// MySize* size2;
+};
+
+// struct SharedPtrPropTest {
+    // std::shared_ptr<MySize> aaa;
 // };
 
 // %rename(globalFooFloat) globalFoo(float);
@@ -54,18 +66,18 @@
 //     };
 // }}}
 
-%attribute_writeonly(MyClassTestWriteOnlyProp, int, myvar, setVar);
-%attribute(MyClassTestWriteOnlyProp, float, myvar2, getVar2, setVar2);
-%attribute(MyClassTestWriteOnlyProp, double, myvar3, getVar3);
+// %attribute_writeonly(MyClassTestWriteOnlyProp, int, myvar, setVar);
+// %attribute(MyClassTestWriteOnlyProp, float, myvar2, getVar2, setVar2);
+// %attribute(MyClassTestWriteOnlyProp, double, myvar3, getVar3);
 
-class MyClassTestWriteOnlyProp {
-public:
-    void setVar(int a);
-    void setVar2(float a);
-    float getVar2() const;
+// class MyClassTestWriteOnlyProp {
+// public:
+//     void setVar(int a);
+//     void setVar2(float a);
+//     float getVar2() const;
 
-    double getVar3() const;
-};
+//     double getVar3() const;
+// };
 
 
 

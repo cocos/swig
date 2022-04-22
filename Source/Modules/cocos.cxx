@@ -114,10 +114,13 @@ static std::vector<std::string> getNamespaceNameArray(Node* n) {
 
 static std::string getPropertyName(Node* n) {
     if (0 == Cmp(Getattr(n, "kind"), "variable")) {
+        String* storage = Getattr(n, "storage");
         String* access = Getattr(n, "access");
         int needIgnore = GetFlag(n, "feature:ignore");
         // ignore properties those name begin with '_'
-        if (!needIgnore && 0 == Cmp(access, "public")) {
+        if (!needIgnore
+            && 0 == Cmp(access, "public")
+            && 0 != Cmp(storage, "static")) {
             return Char(Getattr(n, "name"));
         }
     }
@@ -126,9 +129,9 @@ static std::string getPropertyName(Node* n) {
 
 static std::vector<std::string> getStructProperties(Node* n) {
     std::vector<std::string> ret;
-    auto* nodeType = Getattr(n, "nodeType");
+    auto* nodeType = nodeType(n);
     if (0 == Cmp(nodeType, "class")) {
-        auto* child = Getattr(n, "firstChild");
+        auto* child = firstChild(n);
         if (child != nullptr) {
             auto name = getPropertyName(child);
             if (!name.empty()) {
@@ -138,7 +141,7 @@ static std::vector<std::string> getStructProperties(Node* n) {
             Node* cur = child;
             Node* next = nullptr;
             do {
-                next = Getattr(cur, "nextSibling");
+                next = nextSibling(cur);
                 if (next == nullptr) {
                     break;
                 }
@@ -163,6 +166,16 @@ static void convertToMangledName(String* name) {
     Replaceall(name, " ", "");
     Replaceall(name, ",", "_");
     Replaceall(name, "*", "_");
+}
+
+static int getParmListCount(ParmList* params) {
+    int count = 0;
+    ParmList* p = params;
+    while (p != nullptr) {
+        ++count;
+        p = nextSibling(p);
+    }
+    return count;
 }
 
 /**
@@ -1184,6 +1197,8 @@ int JSEmitter::emitGetter(Node *n, bool is_member, bool is_static) {
         return SWIG_OK;
     }
 
+    int isextendmember = GetFlag(n, "isextendmember");
+
     Wrapper *wrapper = NewWrapper();
     Template t_getter(getTemplate("js_getter"));
 
@@ -1196,13 +1211,25 @@ int JSEmitter::emitGetter(Node *n, bool is_member, bool is_static) {
 
     // prepare local variables
     ParmList *params = Getattr(n, "parms");
+//    assert(getParmListCount(params) == 1);
     emit_parameter_variables(params, wrapper);
     emit_attach_parmmaps(params, wrapper);
 
     // prepare code part
-    String *action = emit_action(n);
+    String *action = isextendmember ? emit_action(n) : NewStringEmpty();
     marshalInputArgs(n, params, wrapper, Getter, is_member, is_static);
-    marshalOutput(n, params, wrapper, action);
+    String* prop = !isextendmember ? NewStringf("arg1->%s", Getattr(n, "name")) : nullptr;
+    if (isextendmember) {
+        auto* retBaseType = SwigType_base(Getattr(n, "type"));
+        Setattr(n, "type", retBaseType);
+        Delete(retBaseType);
+        Replace(action, " *", "", DOH_REPLACE_ANY);
+        Replace(action, "&", "", DOH_REPLACE_ANY);
+    }
+
+    marshalOutput(n, params, wrapper, action, prop, isextendmember); // don't emit result value
+    Delete(action);
+    Delete(prop);
 
     emitCleanupCode(n, wrapper, params);
 
@@ -1222,6 +1249,8 @@ int JSEmitter::emitSetter(Node *n, bool is_member, bool is_static) {
         return SWIG_OK;
     }
 
+    int isextendmember = GetFlag(n, "isextendmember");
+
     Wrapper *wrapper = NewWrapper();
 
     Template t_setter(getTemplate("js_setter"));
@@ -1234,13 +1263,35 @@ int JSEmitter::emitSetter(Node *n, bool is_member, bool is_static) {
 
     // prepare local variables
     ParmList *params = Getattr(n, "parms");
+    assert(getParmListCount(params) == 2);
+    auto* value = nextSibling(params);
+
+    if (isextendmember) {
+        auto* valueBaseType = SwigType_base(Getattr(value, "type"));
+        Setattr(value, "type", valueBaseType);
+        Delete(valueBaseType);
+    }
+    else {
+        auto* prop = NewStringf("arg1->%s", Getattr(value, "name"));
+        Setattr(value, "lname", prop);
+        Delete(prop);
+        DohIncref(value);
+        set_nextSibling(params, nullptr);
+    }
+
     emit_parameter_variables(params, wrapper);
+
+    if (!isextendmember) {
+        set_nextSibling(params, value);
+    }
     emit_attach_parmmaps(params, wrapper);
 
     // prepare code part
     String *action = emit_action(n);
     marshalInputArgs(n, params, wrapper, Setter, is_member, is_static);
-    Append(wrapper->code, action);
+    if (isextendmember) { //cjh added
+        Append(wrapper->code, action);
+    }
 
     emitCleanupCode(n, wrapper, params);
 

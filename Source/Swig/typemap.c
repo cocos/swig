@@ -1716,7 +1716,6 @@ static String *typemap_get_option(Hash *tm, const_String_or_char_ptr name) {
  * ----------------------------------------------------------------------------- */
 
 void Swig_typemap_attach_parms(const_String_or_char_ptr tmap_method, ParmList *parms, Wrapper *f) {
-#define SWIG_DEBUG 1
   Parm *p, *firstp;
   Hash *tm;
   int nmatch = 0;
