@@ -1175,6 +1175,11 @@ int JSEmitter::emitDtor(Node *n) {
 }
 
 int JSEmitter::emitGetter(Node *n, bool is_member, bool is_static) {
+    // skip variables that are writeonly
+    if (State::IsSet(state.variable(IS_WRITE_ONLY))) {
+        return SWIG_OK;
+    }
+
     Wrapper *wrapper = NewWrapper();
     Template t_getter(getTemplate("js_getter"));
 
