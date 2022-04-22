@@ -33,6 +33,7 @@ static bool js_template_enable_debug = false;
 #define TYPE_MANGLED "type_mangled"
 #define WRAPPER_NAME "wrapper"
 #define IS_IMMUTABLE "is_immutable"
+#define IS_WRITE_ONLY "is_write_only"
 #define IS_STATIC "is_static"
 #define IS_ABSTRACT "is_abstract"
 #define GETTER "getter"
