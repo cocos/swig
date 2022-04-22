@@ -251,13 +251,13 @@ static bool $jswrapper(se::State& s)
  *   - $jssetter:     wrapper of setter function
  * ----------------------------------------------------------------------------- */
 %fragment ("jsc_variable_declaration", "templates")
-%{ cls->defineProperty("$jsname", _SE($jsgetter), _SE($jssetter)); %}
+%{ cls->defineProperty("$jsname", $jsgetter, $jssetter); %}
 
 %fragment ("jsc_static_variable_declaration", "templates")
-%{ cls->defineStaticProperty("$jsname", _SE($jsgetter), _SE($jssetter)); %}
+%{ cls->defineStaticProperty("$jsname", $jsgetter, $jssetter); %}
 
 %fragment ("jsc_global_variable_declaration", "templates")
-%{ ns->defineProperty("$jsname", _SE($jsgetter), _SE($jssetter)); %}
+%{ ns->defineProperty("$jsname", $jsgetter, $jssetter); %}
 
 /* -----------------------------------------------------------------------------
  * jsc_function_declaration:  template for a function table entry
@@ -298,7 +298,7 @@ bool js_register_$jsmangledname(se::Object* obj) {
     $jsclassfunctions
     $jsstaticclassvariables
     $jsstaticclassfunctions
-    cls->defineFinalizeFunction(_SE($jsdtor));
+    $jsfinalizefunction
     cls->install();
     JSBClassType::registerClass<$jsclassname>(cls);
 
@@ -309,11 +309,15 @@ bool js_register_$jsmangledname(se::Object* obj) {
 }
 %}
 
-%fragment ("jsc_class_inherit", templates)
-%{ auto* cls = se::Class::create("$jsname", obj, __jsb_$jsbaseclassmangled_proto, _SE($jsctor)); %}
+%fragment ("jsc_finalize_function", "templates") %{
+    cls->defineFinalizeFunction(_SE($jsdtor));
+%}
 
-%fragment ("jsc_class_noinherit", templates)
-%{ auto* cls = se::Class::create("$jsname", obj, nullptr, _SE($jsctor)); %}
+%fragment ("jsc_class_inherit", "templates")
+%{ auto* cls = se::Class::create("$jsname", obj, __jsb_$jsbaseclassmangled_proto, $jsctor); %}
+
+%fragment ("jsc_class_noinherit", "templates")
+%{ auto* cls = se::Class::create("$jsname", obj, nullptr, $jsctor); %}
 
 /* -----------------------------------------------------------------------------
  * jsc_register_class:  template for registration of a class

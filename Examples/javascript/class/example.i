@@ -32,27 +32,42 @@
 //     MySize* size2;
 // };
 
-%rename(globalFooFloat) globalFoo(float);
+// %rename(globalFooFloat) globalFoo(float);
 
-void globalFoo(int a);
-void globalFoo(float a);
+// void globalFoo(int a);
+// void globalFoo(float a);
 
-namespace MyNS { namespace subns { namespace ns3 {
-    %rename(memberFooInClassFloat) MyClassA::memberFooInClass(float);
-    %rename(staticFooInClassFloat) MyClassA::staticFooInClass(float);
-    %rename(globalFooInNSFloat) globalFooInNS(float);
+// namespace MyNS { namespace subns { namespace ns3 {
+//     %rename(memberFooInClassFloat) MyClassA::memberFooInClass(float);
+//     %rename(staticFooInClassFloat) MyClassA::staticFooInClass(float);
+//     %rename(globalFooInNSFloat) globalFooInNS(float);
 
-    void globalFooInNS(float a);
-    void globalFooInNS(int a);
+//     void globalFooInNS(float a);
+//     void globalFooInNS(int a);
 
-    class MyClassA {
-    public:
-        static void staticFooInClass(bool a);
-        static void staticFooInClass(float a);
-        void memberFooInClass(int a);
-        void memberFooInClass(float a);
-    };
-}}}
+//     class MyClassA {
+//     public:
+//         static void staticFooInClass(bool a);
+//         static void staticFooInClass(float a);
+//         void memberFooInClass(int a);
+//         void memberFooInClass(float a);
+//     };
+// }}}
+
+%attribute_writeonly(MyClassTestWriteOnlyProp, int, myvar, setVar);
+%attribute(MyClassTestWriteOnlyProp, float, myvar2, getVar2, setVar2);
+%attribute(MyClassTestWriteOnlyProp, double, myvar3, getVar3);
+
+class MyClassTestWriteOnlyProp {
+public:
+    void setVar(int a);
+    void setVar2(float a);
+    float getVar2() const;
+
+    double getVar3() const;
+};
+
+
 
 
 // /* Set the input argument to point to a temporary variable */ 

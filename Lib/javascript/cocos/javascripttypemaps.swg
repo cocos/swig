@@ -163,7 +163,7 @@
 %{  // out 6
   ok &= nativevalue_to_se($1, s.rval(), nullptr /*ctx*/);
   SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
-  SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval()); 
+  SE_HOLD_RETURN_VALUE($1, s.thisObject(), s.rval()); 
 %}
 
 %typemap(out) const char[ANY], char[ANY]
@@ -218,21 +218,21 @@
 // out is simple
 %typemap(out) SWIGTYPE&
 %{  // %typemap(out) SWIGTYPE&
-  ok &= nativevalue_to_se($1, s.rval(), s.thisObject() /*ctx*/);
+  ok &= nativevalue_to_se(*$1, s.rval(), s.thisObject() /*ctx*/);
     SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
-    SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval()); %}
+    SE_HOLD_RETURN_VALUE(*$1, s.thisObject(), s.rval()); %}
 
 %typemap(out) SWIGTYPE*
 %{ // %typemap(out) SWIGTYPE*
   ok &= nativevalue_to_se($1, s.rval(), s.thisObject() /*ctx*/);
    SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
-   SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval()); %}
+   SE_HOLD_RETURN_VALUE($1, s.thisObject(), s.rval()); %}
 
 %typemap(out) SWIGTYPE&&
 %{ // %typemap(out) SWIGTYPE&&
   ok &= nativevalue_to_se($1, s.rval(), s.thisObject() /*ctx*/);
    SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
-   SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval()); %}
+   SE_HOLD_RETURN_VALUE($1, s.thisObject(), s.rval()); %}
 
 // dynamic casts
 // this uses the SWIG_TypeDynamicCast() which relies on RTTI to find out what the pointer really is
@@ -290,7 +290,7 @@ $1=($1_ltype)&temp;%}
 { // %typemap(out) SWIGTYPE
     ok &= nativevalue_to_se($1, s.rval(), s.thisObject() /*ctx*/);
     SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
-    SE_HOLD_RETURN_VALUE(result, s.thisObject(), s.rval());
+    SE_HOLD_RETURN_VALUE($1, s.thisObject(), s.rval());
 }
 
 // member function pointer

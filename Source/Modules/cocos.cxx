@@ -928,11 +928,13 @@ int JSEmitter::enterClass(Node *n) {
     state.clazz(TYPE_MANGLED, classtype_mangled);
     Delete(type);
 
-    String *ctor_wrapper = NewString("js_new_veto_");
-    Append(ctor_wrapper, state.clazz(NAME));
-    state.clazz(CTOR, ctor_wrapper);
+//    String *ctor_wrapper = NewString("js_new_veto_");
+//    Append(ctor_wrapper, state.clazz(NAME));
+    auto* ctorStr = NewString("nullptr");
+    state.clazz(CTOR, ctorStr);
+    Delete(ctorStr);
+
     state.clazz(CTOR_DISPATCHERS, NewString(""));
-    state.clazz(DTOR, NewString("0"));
 
     // HACK: assume that a class is abstract
     // this is resolved by emitCtor (which is only called for non abstract classes)
@@ -1032,6 +1034,7 @@ int JSEmitter::emitCtor(Node *n) {
 
     DelWrapper(wrapper);
 
+    Clear(state.clazz(CTOR));
     // create a dispatching ctor
     if (is_overloaded) {
         if (!Getattr(n, "sym:nextSibling")) {
@@ -1042,10 +1045,11 @@ int JSEmitter::emitCtor(Node *n) {
                 .replace("$jsname", state.clazz(NAME))
                 .replace("$jsdispatchcases", state.clazz(CTOR_DISPATCHERS))
                 .pretty_print(s_wrappers);
-            state.clazz(CTOR, wrap_name);
+
+            Printf(state.clazz(CTOR), "_SE(%s)", wrap_name);
         }
     } else {
-        state.clazz(CTOR, wrap_name);
+        Printf(state.clazz(CTOR), "_SE(%s)", wrap_name);
     }
 
     return SWIG_OK;
@@ -1186,7 +1190,9 @@ int JSEmitter::emitGetter(Node *n, bool is_member, bool is_static) {
     // prepare wrapper name
     String *wrap_name = Swig_name_wrapper(Getattr(n, "sym:name"));
     Setattr(n, "wrap:name", wrap_name);
-    state.variable(GETTER, wrap_name);
+    Swig_print(wrap_name);
+    Clear(state.variable(GETTER));
+    Printf(state.variable(GETTER), "_SE(%s)", wrap_name);
 
     // prepare local variables
     ParmList *params = Getattr(n, "parms");
@@ -1223,7 +1229,8 @@ int JSEmitter::emitSetter(Node *n, bool is_member, bool is_static) {
     // prepare wrapper name
     String *wrap_name = Swig_name_wrapper(Getattr(n, "sym:name"));
     Setattr(n, "wrap:name", wrap_name);
-    state.variable(SETTER, wrap_name);
+    Clear(state.variable(SETTER));
+    Printf(state.variable(SETTER), "_SE(%s)", wrap_name);
 
     // prepare local variables
     ParmList *params = Getattr(n, "parms");
@@ -1278,7 +1285,9 @@ int JSEmitter::emitConstant(Node *n) {
     // call the variable methods as a constants are
     // registered in same way
     enterVariable(n);
-    state.variable(GETTER, wname);
+    Clear(state.variable(GETTER));
+    Swig_print(wname, -1);
+    Printf(state.variable(GETTER), "_SE(%s)", wname);
     // TODO: why do we need this?
     Setattr(n, "wrap:name", wname);
 
@@ -1635,8 +1644,8 @@ protected:
     virtual int emitNamespaces();
 
 private:
-    String *NULL_STR;
-    String *VETO_SET;
+    String *VETO_SET{};
+    String *VETO_GET{};
 
     // output file and major code parts
     File *f_wrap_cpp{};
@@ -1649,11 +1658,11 @@ private:
 };
 
 CocosEmitter::CocosEmitter()
-: JSEmitter(JSEmitter::Cocos), NULL_STR(NewString("NULL")), VETO_SET(NewString("js_veto_set_variable")) {
+: JSEmitter(JSEmitter::Cocos), VETO_GET(NewString("nullptr")), VETO_SET(NewString("nullptr")) {
 }
 
 CocosEmitter::~CocosEmitter() {
-    Delete(NULL_STR);
+    Delete(VETO_GET);
     Delete(VETO_SET);
 }
 
@@ -1894,12 +1903,23 @@ int CocosEmitter::exitFunction(Node *n) {
 
 int CocosEmitter::enterVariable(Node *n) {
     JSEmitter::enterVariable(n);
-    state.variable(GETTER, NULL_STR);
-    state.variable(SETTER, VETO_SET);
+
+    auto* vetoGet = Copy(VETO_GET);
+    state.variable(GETTER, vetoGet);
+    Delete(vetoGet);
+
+    auto* vetoSet = Copy(VETO_SET);
+    state.variable(SETTER, vetoSet);
+    Delete(vetoSet);
+
+    Swig_print(NewStringf("~~~~ \nenterVariable: %s\ngetter: %s\nsetter: %s\n~~~~", Getattr(n, "name"), state.variable(GETTER), state.variable(SETTER)));
+
     return SWIG_OK;
 }
 
 int CocosEmitter::exitVariable(Node *n) {
+    Swig_print(NewStringf("-----\nname: %s\ngetter: %s\nsetter: %s\n-------", state.variable(NAME), state.variable(GETTER), state.variable(SETTER)));
+
     if (GetFlag(n, "ismember")) {
         if (GetFlag(state.variable(), IS_STATIC) || Equal(Getattr(n, "nodeType"), "enumitem")) {
             Template t_static_variable(getTemplate("jsc_static_variable_declaration"));
@@ -1952,13 +1972,13 @@ int CocosEmitter::exitClass(Node *n) {
     //Append(s_wrappers, state.clazz(CTOR_WRAPPERS));
 
     // for abstract classes add a vetoing ctor
-    if (GetFlag(state.clazz(), IS_ABSTRACT)) {
-        Template t_veto_ctor(getTemplate("js_veto_ctor"));
-        t_veto_ctor.replace("$jswrapper", state.clazz(CTOR))
-            .replace("$jsmangledname", state.clazz(NAME_MANGLED))
-            .replace("$jsname", state.clazz(NAME))
-            .pretty_print(s_wrappers);
-    }
+//    if (GetFlag(state.clazz(), IS_ABSTRACT)) {
+//        Template t_veto_ctor(getTemplate("js_veto_ctor"));
+//        t_veto_ctor.replace("$jswrapper", state.clazz(CTOR))
+//            .replace("$jsmangledname", state.clazz(NAME_MANGLED))
+//            .replace("$jsname", state.clazz(NAME))
+//            .pretty_print(s_wrappers);
+//    }
 
 
 
@@ -1990,6 +2010,13 @@ int CocosEmitter::exitClass(Node *n) {
     Replaceall(jsclassname, "(", "");
     Replaceall(jsclassname, ")", "");
 
+    String* s_jsc_finalize_function = NewString("");
+    if (state.clazz(DTOR)) {
+        Template t_finalize_function(getTemplate("jsc_finalize_function"));
+        t_finalize_function.replace("$jsdtor", state.clazz(DTOR))
+            .pretty_print(s_jsc_finalize_function);
+    }
+
     /* adds a class template statement to initializer function */
     Template t_classtemplate(getTemplate("jsc_class_definition"));
     t_classtemplate.replace("$jsmangledname", state.clazz(NAME_MANGLED))
@@ -1998,7 +2025,7 @@ int CocosEmitter::exitClass(Node *n) {
         .replace("$jsmangledtype", state.clazz(TYPE_MANGLED))
         .replace("$jsclass_inheritance", jsclass_inheritance)
         .replace("$jsctor", state.clazz(CTOR))
-        .replace("$jsdtor", state.clazz(DTOR))
+        .replace("$jsfinalizefunction", s_jsc_finalize_function)
         .replace("$jsnspace", Getattr(state.clazz("nspace"), NAME_MANGLED))
 
         .replace("$jsclassvariables", state.clazz(MEMBER_VARIABLES))
