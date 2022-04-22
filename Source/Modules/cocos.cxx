@@ -969,6 +969,11 @@ int JSEmitter::enterVariable(Node *n) {
     if (!Language::instance()->is_assignable(n)) {
         SetFlag(state.variable(), IS_IMMUTABLE);
     }
+
+    if (GetFlag(n, "feature:writeonly")) {
+        SetFlag(state.variable(), IS_WRITE_ONLY);
+    }
+
     // FIXME: test "arrays_global" does not compile with that as it is not allowed to assign to char[]
     if (Equal(Getattr(n, "type"), "a().char")) {
         SetFlag(state.variable(), IS_IMMUTABLE);
