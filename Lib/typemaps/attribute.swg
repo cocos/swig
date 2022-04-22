@@ -72,6 +72,26 @@ inline AttributeType %mangle(Class) ##_## AttributeName ## _get(C* self_) {
 #endif
 %enddef
 
+%define %attribute_writeonly(Class, AttributeType, AttributeName, SetMethod)
+  %ignore Class::SetMethod;
+  %writeonly Class::AttributeName;
+  %extend Class {
+    AttributeType AttributeName;
+  }
+#if defined(__cplusplus) && defined(SWIG_ATTRIBUTE_TEMPLATE)
+  %{
+template < class C >
+inline void %mangle(Class) ##_## AttributeName ## _set(C* self_, AttributeType val_) {
+    self_->SetMethod(val_);
+}
+  %}
+#else
+  %{
+#define %mangle(Class) ##_## AttributeName ## _set(self_, val_) self_->SetMethod(val_)
+  %}
+#endif
+%enddef
+
 
 // User macros
 

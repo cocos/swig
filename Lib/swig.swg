@@ -44,6 +44,8 @@
 
 #define %readonly    %warn "114:%readonly is deprecated. Use %immutable; " %feature("immutable");
 #define %readwrite   %warn "115:%readwrite is deprecated. Use %mutable; " %feature("immutable","");
+#define %writeonly      %feature("writeonly")
+#define %clearwriteonly %feature("writeonly", "")
 
 #define %immutable       %feature("immutable")
 #define %noimmutable     %feature("immutable","0")
