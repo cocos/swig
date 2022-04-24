@@ -357,7 +357,7 @@ extern int        ParmList_is_compactdefargs(ParmList *p);
   extern void Swig_cresult_name_set(const char *new_name);
   extern const char *Swig_cresult_name(void);
   extern String *Swig_cparm_name(Parm *p, int i);
-  extern String *Swig_wrapped_var_type(SwigType *t, int varcref);
+  extern String *Swig_wrapped_var_type(SwigType *t, int varcref, int convertTypeToPointer);
   extern int Swig_cargs(Wrapper *w, ParmList *l);
   extern String *Swig_cresult(SwigType *t, const_String_or_char_ptr name, const_String_or_char_ptr decl);
 

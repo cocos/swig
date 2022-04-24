@@ -168,7 +168,7 @@ static void convertToMangledName(String* name) {
     Replaceall(name, "*", "_");
 }
 
-static int getParmListCount(ParmList* params) {
+static int getParamListCount(ParmList* params) {
     int count = 0;
     ParmList* p = params;
     while (p != nullptr) {
@@ -418,8 +418,12 @@ public:
 
     virtual int functionHandler(Node *n);
     virtual int globalfunctionHandler(Node *n);
+
     virtual int variableHandler(Node *n);
     virtual int globalvariableHandler(Node *n);
+    virtual int membervariableHandler(Node *n);
+    virtual int staticmembervariableHandler(Node *n);
+
     virtual int staticmemberfunctionHandler(Node *n);
     virtual int classHandler(Node *n);
     virtual int functionWrapper(Node *n);
@@ -526,6 +530,9 @@ int COCOS::staticmemberfunctionHandler(Node *n) {
  * --------------------------------------------------------------------- */
 
 int COCOS::variableHandler(Node *n) {
+    // Add feature:dont_convert_var_to_ptr
+    Setattr(n, "feature:dont_convert_var_to_ptr", "1");
+
     emitter->enterVariable(n);
     Language::variableHandler(n);
     emitter->exitVariable(n);
@@ -540,10 +547,22 @@ int COCOS::variableHandler(Node *n) {
  * --------------------------------------------------------------------- */
 
 int COCOS::globalvariableHandler(Node *n) {
+    // Add feature:dont_convert_var_to_ptr
+    Setattr(n, "feature:dont_convert_var_to_ptr", "1");
     emitter->switchNamespace(n);
-    Language::globalvariableHandler(n);
+    return Language::globalvariableHandler(n);
+}
 
-    return SWIG_OK;
+int COCOS::membervariableHandler(Node *n) {
+    // Add feature:dont_convert_var_to_ptr
+    Setattr(n, "feature:dont_convert_var_to_ptr", "1");
+    return Language::membervariableHandler(n);
+}
+
+int COCOS::staticmembervariableHandler(Node *n) {
+    // Add feature:dont_convert_var_to_ptr
+    Setattr(n, "feature:dont_convert_var_to_ptr", "1");
+    return Language::staticmembervariableHandler(n);
 }
 
 /* ---------------------------------------------------------------------
@@ -1198,6 +1217,7 @@ int JSEmitter::emitGetter(Node *n, bool is_member, bool is_static) {
     }
 
     int isextendmember = GetFlag(n, "isextendmember");
+    int is_global = !is_member && !is_static;
 
     Wrapper *wrapper = NewWrapper();
     Template t_getter(getTemplate("js_getter"));
@@ -1211,23 +1231,16 @@ int JSEmitter::emitGetter(Node *n, bool is_member, bool is_static) {
 
     // prepare local variables
     ParmList *params = Getattr(n, "parms");
-//    assert(getParmListCount(params) == 1);
+
     emit_parameter_variables(params, wrapper);
     emit_attach_parmmaps(params, wrapper);
 
     // prepare code part
-    String *action = isextendmember ? emit_action(n) : NewStringEmpty();
+    String *action = (isextendmember || is_static || is_global) ? emit_action(n) : NewStringEmpty();
     marshalInputArgs(n, params, wrapper, Getter, is_member, is_static);
-    String* prop = !isextendmember ? NewStringf("arg1->%s", Getattr(n, "name")) : nullptr;
-    if (isextendmember) {
-        auto* retBaseType = SwigType_base(Getattr(n, "type"));
-        Setattr(n, "type", retBaseType);
-        Delete(retBaseType);
-        Replace(action, " *", "", DOH_REPLACE_ANY);
-        Replace(action, "&", "", DOH_REPLACE_ANY);
-    }
+    String* prop = (!isextendmember && !is_static && !is_global) ? NewStringf("arg1->%s", Getattr(n, "name")) : nullptr;
 
-    marshalOutput(n, params, wrapper, action, prop, isextendmember); // don't emit result value
+    marshalOutput(n, params, wrapper, action, prop, isextendmember || is_static || is_global); // don't emit result value
     Delete(action);
     Delete(prop);
 
@@ -1263,15 +1276,15 @@ int JSEmitter::emitSetter(Node *n, bool is_member, bool is_static) {
 
     // prepare local variables
     ParmList *params = Getattr(n, "parms");
-    assert(getParmListCount(params) == 2);
-    auto* value = nextSibling(params);
+    int paramCount = getParamListCount(params);
 
-    if (isextendmember) {
-        auto* valueBaseType = SwigType_base(Getattr(value, "type"));
-        Setattr(value, "type", valueBaseType);
-        Delete(valueBaseType);
+    ParmList *value = nullptr;
+    if (paramCount > 1) {
+        value = nextSibling(params);
+        Swig_print(Getattr(value, "type"));
     }
-    else {
+
+    if (!isextendmember && value != nullptr) {
         auto* prop = NewStringf("arg1->%s", Getattr(value, "name"));
         Setattr(value, "lname", prop);
         Delete(prop);
@@ -1281,15 +1294,16 @@ int JSEmitter::emitSetter(Node *n, bool is_member, bool is_static) {
 
     emit_parameter_variables(params, wrapper);
 
-    if (!isextendmember) {
+    if (!isextendmember && value != nullptr) {
         set_nextSibling(params, value);
+        Delete(value);
     }
     emit_attach_parmmaps(params, wrapper);
 
     // prepare code part
     String *action = emit_action(n);
     marshalInputArgs(n, params, wrapper, Setter, is_member, is_static);
-    if (isextendmember) { //cjh added
+    if (isextendmember || value == nullptr) { //cjh added
         Append(wrapper->code, action);
     }
 

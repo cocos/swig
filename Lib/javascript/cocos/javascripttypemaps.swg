@@ -209,11 +209,11 @@
   $1 = &temp;
 %}
 
-%typemap(in) SWIGTYPE&&
+%typemap(in) SWIGTYPE&& ($*ltype temp)
 %{// %typemap(in) SWIGTYPE&&
-  if (!SWIG_IsOK(SWIG_ConvertPtrMove222(L,$input,(void**)&$1,$descriptor,$disown))){
-    SWIG_fail_ptr("$symname",$argnum,$descriptor);
-  }
+  ok &= sevalue_to_native($input, &temp, s.thisObject());
+  SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");
+  $1 = &temp;
 %}
 
 // out is simple
@@ -495,4 +495,13 @@ parameters match which function
   if ($1 < 0) {
     croak("hahaha Expecting a positive number"); 
   }
+%}
+
+// Cocos custom type
+
+%typemap(in) cc::Mat4* (cc::Mat4 temp) %{
+  // %typemap(in) cc::Mat4* (cc::Mat4 temp) %{
+  ok &= sevalue_to_native($input, &temp);
+  SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");
+  $1 = ($ltype) &temp;
 %}

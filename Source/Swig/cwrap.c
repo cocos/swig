@@ -132,7 +132,7 @@ static String *Swig_clocal(SwigType *t, const_String_or_char_ptr name, const_Str
  * This function only converts user defined types to pointers.
  * ----------------------------------------------------------------------------- */
 
-String *Swig_wrapped_var_type(SwigType *t, int varcref) {
+String *Swig_wrapped_var_type(SwigType *t, int varcref, int convertTypeToPointer) {
   SwigType *ty;
 
   if (!Strstr(t, "enum $unnamed")) {
@@ -152,13 +152,15 @@ String *Swig_wrapped_var_type(SwigType *t, int varcref) {
 	return Copy(ty);
       }
     } else {
-      SwigType_add_pointer(ty);
+        if (convertTypeToPointer) {
+            SwigType_add_pointer(ty);
+        }
     }
   }
   return ty;
 }
 
-String *Swig_wrapped_member_var_type(SwigType *t, int varcref) {
+String *Swig_wrapped_member_var_type(SwigType *t, int varcref, int convertTypeToPointer) {
   SwigType *ty;
 
   if (!Strstr(t, "enum $unnamed")) {
@@ -177,8 +179,9 @@ String *Swig_wrapped_member_var_type(SwigType *t, int varcref) {
 	return Copy(ty);
       }
     } else {
-//cjh      SwigType_add_pointer(ty);
-        SwigType_add_pointer(ty);
+        if (convertTypeToPointer) { //cjh added
+            SwigType_add_pointer(ty);
+        }
     }
   }
   return ty;
@@ -1422,8 +1425,15 @@ int Swig_MembersetToFunction(Node *n, String *classname, int flags) {
   Setattr(parms, "hidden","1");
   Delete(t);
 
-  ty = Swig_wrapped_member_var_type(type, varcref);
+  int convertTypeToPointer = !GetFlag(n, "feature:dont_convert_var_to_ptr");
+
+  ty = Swig_wrapped_member_var_type(type, varcref, convertTypeToPointer);
   p = NewParm(ty, name, n);
+    //cjh added
+    if (Cmp(type, ty) != 0) {
+        Setattr(p, "original_type", type);
+    }
+    //
   Setattr(parms, "hidden", "1");
   set_nextSibling(parms, p);
 
@@ -1514,7 +1524,8 @@ int Swig_MembergetToFunction(Node *n, String *classname, int flags) {
   Setattr(parms, "hidden","1");
   Delete(t);
 
-  ty = Swig_wrapped_member_var_type(type, varcref);
+  int convertTypeToPointer = !GetFlag(n, "feature:dont_convert_var_to_ptr");
+  ty = Swig_wrapped_member_var_type(type, varcref, convertTypeToPointer);
   if (flags & CWRAP_EXTEND) {
     String *call;
     String *cres;
@@ -1569,7 +1580,9 @@ int Swig_VarsetToFunction(Node *n, int flags) {
   name = Getattr(n, "name");
   type = Getattr(n, "type");
   nname = SwigType_namestr(name);
-  ty = Swig_wrapped_var_type(type, varcref);
+
+    int convertTypeToPointer = !GetFlag(n, "feature:dont_convert_var_to_ptr"); //cjh added
+  ty = Swig_wrapped_var_type(type, varcref, convertTypeToPointer);
   parms = NewParm(ty, name, n);
 
   if (flags & CWRAP_EXTEND) {
@@ -1585,7 +1598,10 @@ int Swig_VarsetToFunction(Node *n, int flags) {
   } else {
     if (!Strstr(type, "enum $unnamed")) {
       String *pname = Swig_cparm_name(0, 0);
-      String *dref = Swig_wrapped_var_deref(type, pname, varcref);
+        int old_cparse_cplusplus = cparse_cplusplus; //cjh added
+        cparse_cplusplus = 0;
+      String *dref = Swig_wrapped_var_deref(type, pname, varcref || !convertTypeToPointer);//cjh add convertTypeToPointer
+        cparse_cplusplus = old_cparse_cplusplus;
       String *call = NewStringf("%s = %s;", nname, dref);
       Setattr(n, "wrap:action", call);
       Delete(call);
@@ -1624,7 +1640,8 @@ int Swig_VargetToFunction(Node *n, int flags) {
 
   name = Getattr(n, "name");
   type = Getattr(n, "type");
-  ty = Swig_wrapped_var_type(type, varcref);
+    int convertTypeToPointer = !GetFlag(n, "feature:dont_convert_var_to_ptr"); //cjh added
+  ty = Swig_wrapped_var_type(type, varcref, convertTypeToPointer);
 
   if (flags & CWRAP_EXTEND) {
     String *sname = Swig_name_get(0, name);
@@ -1643,7 +1660,7 @@ int Swig_VargetToFunction(Node *n, int flags) {
     } else {
       nname = SwigType_namestr(name);
     }
-    call = Swig_wrapped_var_assign(type, nname, varcref);
+      call = Swig_wrapped_var_assign(type, nname, varcref || !convertTypeToPointer);
     cres = Swig_cresult(ty, Swig_cresult_name(), call);
     Setattr(n, "wrap:action", cres);
     Delete(nname);

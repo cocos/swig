@@ -3,6 +3,7 @@
 
 // %include <std_string.i>
 // %include <std_vector.i>
+%include <attribute.i>
 
 %import stlmodule.i
 
@@ -26,19 +27,37 @@
 //     static float staticFloatProp;
 // };
 
-struct MySize {
-    float width;
-// float height;
-};
+// struct MySize {
+//     float width;
+// // float height;
+// };
 
+extern int MY_MAX_VALUE;
 
-%attribute(MyRect, MySize, size, getSize, setSize);
-struct MyRect {
+// %attribute(MyRect, MySize, size, getSize, setSize);
+// %attribute(MyRect, ccstd::string&, name, getName, setName);
+// %attribute(MyRect, %arg(ccstd::map<int, MySize>&), mymap, getMap, setMap);
+// struct MyRect {
+    // static int size;
+    // static MySize size;
     // MySize size;
-    void setSize(const MySize& size);
-    const MySize& getSize() const;
+    // MySize *size;
+    // cc::IntrusivePtr<MySize> size;
+    // int size;
+    // ccstd::string size;
+
+    // void setSize(const MySize& size);
+    // const MySize& getSize() const;
+
+    // void setName(const ccstd::string& name);
+    // const ccstd::string& getName() const;
+
+    // void setMap(const ccstd::map<int, MySize>& map);
+    // const ccstd::map<int, MySize>& getMap() const;
+
+    // ccstd::map<int, MySize> prop_map;
 // MySize* size2;
-};
+// };
 
 // struct SharedPtrPropTest {
     // std::shared_ptr<MySize> aaa;
