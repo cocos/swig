@@ -25,22 +25,7 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
     s.thisObject()->setPrivateObject(ptr);
     return true;
 }
-SE_BIND_CTOR($jswrapper, __jsb_$jsmangledname_class, js_delete_$jsname)%}
-
-/* -----------------------------------------------------------------------------
- * js_veto_ctor:  a vetoing ctor for abstract classes
- *   - $jswrapper:        name of wrapper
- *   - $jsname:           class name
- * ----------------------------------------------------------------------------- */
-%fragment ("js_veto_ctor", "templates")
-%{
-static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
-{
-    // js_veto_ctor
-    SE_REPORT_ERROR("Class $jsname can not be instantiated");
-    return false;
-}
-SE_BIND_CTOR($jswrapper, __jsb_$jsmangledname_class, js_delete_$jsname)%}
+SE_BIND_CTOR($jswrapper, __jsb_$jsmangledname_class, js_delete_$js_handler_symname)%}
 
 /* -----------------------------------------------------------------------------
  * js_ctor_dispatcher:  dispatcher for overloaded constructors
@@ -63,7 +48,7 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
     SE_REPORT_ERROR("Illegal arguments for construction of $jsname");
     return false;
 }
-SE_BIND_CTOR($jswrapper, __jsb_$jsmangledname_class, js_delete_$jsname)%}
+SE_BIND_CTOR($jswrapper, __jsb_$jsmangledname_class, js_delete_$js_handler_symname)%}
 
 /* -----------------------------------------------------------------------------
  * js_overloaded_ctor:  template for wrapping a ctor.
@@ -281,7 +266,7 @@ static bool $jswrapper(se::State& s)
 %{
 se::Class* __jsb_$jsmangledname_class = nullptr;
 se::Object* __jsb_$jsmangledname_proto = nullptr;
-SE_DECLARE_FINALIZE_FUNC(js_delete_$jsname) %}
+SE_DECLARE_FINALIZE_FUNC(js_delete_$jsdtor) %}
 
 /* -----------------------------------------------------------------------------
  * jsc_define_class_template:  template for defining a class template
@@ -314,10 +299,10 @@ bool js_register_$jsmangledname(se::Object* obj) {
 %}
 
 %fragment ("jsc_class_inherit", "templates")
-%{ auto* cls = se::Class::create("$jsname", obj, __jsb_$jsbaseclassmangled_proto, $jsctor); %}
+%{ auto* cls = se::Class::create($jsname, obj, __jsb_$jsbaseclassmangled_proto, $jsctor); %}
 
 %fragment ("jsc_class_noinherit", "templates")
-%{ auto* cls = se::Class::create("$jsname", obj, nullptr, $jsctor); %}
+%{ auto* cls = se::Class::create($jsname, obj, nullptr, $jsctor); %}
 
 /* -----------------------------------------------------------------------------
  * jsc_register_class:  template for registration of a class

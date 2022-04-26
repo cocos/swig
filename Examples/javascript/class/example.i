@@ -23,6 +23,13 @@
 %}
 %enddef
 
+static void hello_static_global();
+
+void hello_global();
+
+extern int aaa;
+static int staticAAA;
+
 // struct StaticPropTest {
 //     static float staticFloatProp;
 // };
@@ -33,6 +40,21 @@
 // };
 
 extern int MY_MAX_VALUE;
+
+class Mesh {
+public:
+    static int MESH_AAA = 0;
+    struct ISubMesh {
+        int prop;
+        class SubSubClass {
+            public:
+            int ohno;
+        };
+    };
+    void foo();
+    static void staticFoo();
+};
+
 
 // %attribute(MyRect, MySize, size, getSize, setSize);
 // %attribute(MyRect, ccstd::string&, name, getName, setName);

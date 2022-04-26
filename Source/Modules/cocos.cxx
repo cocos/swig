@@ -15,6 +15,7 @@
 #include "swigmod.h"
 #include <vector>
 #include <string>
+#include <stack>
 #include <sstream>
 
 namespace cc {
@@ -28,6 +29,7 @@ static bool js_template_enable_debug = false;
 
 // keywords used for state variables
 #define NAME "name"
+#define NEST_CLASS_NAME_LIST "nest_class_name_list"
 #define NAME_MANGLED "name_mangled"
 #define TYPE "type"
 #define TYPE_MANGLED "type_mangled"
@@ -94,6 +96,44 @@ static Node* getClassNode(Node* n) {
 
 static Node* getNamespaceNode(Node* n) {
     return getParentNodeByNodeType(n, "namespace");
+}
+
+static List* createNestClassSymNameList(Node* n) {
+    List* ret = nullptr;
+    if (GetFlag(n, "nested")) {
+        ret = NewList();
+        for (Node *outer_class = Getattr(n, "nested:outer"); outer_class != nullptr; outer_class = Getattr(outer_class, "nested:outer")) {
+              if (String* name = Getattr(outer_class, "sym:name")) {
+                  Insert(ret, 0, name);
+              }
+              else {
+                  Delete(ret);
+                  return nullptr;
+              }
+        }
+        Append(ret, Getattr(n, "sym:name"));
+    }
+
+    return ret;
+}
+
+static String* joinClassSymNameWithList(List* l, const_String_or_char_ptr concatStr) {
+    assert(l != nullptr);
+    String* ret = NewStringEmpty();
+
+    int len = Len(l);
+    if (len > 0) {
+
+        for (int i = 0; i < len; ++i) {
+            auto* name = Getitem(l, i);
+            Append(ret, name);
+            if (i != (len-1)){
+                Append(ret, concatStr);
+            }
+        }
+    }
+
+    return ret;
 }
 
 static std::vector<std::string> getNamespaceNameArray(Node* n) {
@@ -336,7 +376,9 @@ public:
    */
     Template getTemplate(const String *name);
 
-    State &getState();
+    inline State& currentState() { return _stateStack.top(); }
+    void pushState();
+    void popState();
 
 protected:
     /**
@@ -390,7 +432,9 @@ protected:
 protected:
     JSEngine engine;
     Hash *templates;
-    State state;
+    std::stack<State> _stateStack;
+    State* _rootState{};
+    bool hasTemplates{};
 
     // contains context specific data (DOHs)
     // to allow generation of namespace related code
@@ -432,6 +476,8 @@ public:
     virtual void main(int argc, char *argv[]);
     virtual int top(Node *n);
 
+    virtual NestedClassSupport nestedClassesSupport() const { return NCS_Full; };
+
     /**
    *  Registers all %fragments assigned to section "templates".
    **/
@@ -468,8 +514,6 @@ private:
  * --------------------------------------------------------------------- */
 
 int COCOS::functionWrapper(Node *n) {
-    String * ns = Getattr(n, "type");
-    printf("cjh functionWrapper: type: %s\n", Char(ns));
     // note: the default implementation only prints a message
     // Language::functionWrapper(n);
     emitter->emitWrapperFunction(n);
@@ -782,6 +826,8 @@ extern "C" Language *swig_cocos(void) {
 
 JSEmitter::JSEmitter(JSEmitter::JSEngine engine)
 : engine(engine), templates(NewHash()), namespaces(NULL), current_namespace(NULL), defaultResultName(NewString("result")), s_wrappers(NULL) {
+    pushState();
+    _rootState = &currentState();
 }
 
 /* -----------------------------------------------------------------------------
@@ -799,9 +845,7 @@ JSEmitter::~JSEmitter() {
  * ----------------------------------------------------------------------------- */
 
 int JSEmitter::registerTemplate(const String *name, const String *code) {
-    if (!State::IsSet(state.globals(HAS_TEMPLATES))) {
-        SetFlag(state.globals(), HAS_TEMPLATES);
-    }
+    hasTemplates = true;
     return Setattr(templates, name, code);
 }
 
@@ -819,10 +863,6 @@ Template JSEmitter::getTemplate(const String *name) {
 
     Template t(templ, name);
     return t;
-}
-
-JSEmitterState &JSEmitter::getState() {
-    return state;
 }
 
 int JSEmitter::initialize(Node * /*n */) {
@@ -879,6 +919,7 @@ Node *JSEmitter::getBaseClass(Node *n) {
   * ----------------------------------------------------------------------------- */
 
 int JSEmitter::emitWrapperFunction(Node *n) {
+    auto& state = currentState();
     int ret = SWIG_OK;
 
     String *kind = Getattr(n, "kind");
@@ -928,6 +969,7 @@ int JSEmitter::emitWrapperFunction(Node *n) {
 }
 
 int JSEmitter::emitNativeFunction(Node *n) {
+    auto& state = currentState();
     String *wrapname = Getattr(n, "wrap:name");
     enterFunction(n);
     state.function(WRAPPER_NAME, wrapname);
@@ -936,8 +978,17 @@ int JSEmitter::emitNativeFunction(Node *n) {
 }
 
 int JSEmitter::enterClass(Node *n) {
+    auto& state = currentState();
     state.clazz(RESET);
     state.clazz(NAME, Getattr(n, "sym:name"));
+
+    auto* nestClassNameList = createNestClassSymNameList(n);
+    if (nestClassNameList != nullptr) {
+        state.clazz(NEST_CLASS_NAME_LIST, nestClassNameList);
+        Delete(nestClassNameList);
+        nestClassNameList = nullptr;
+    }
+
     state.clazz("nspace", current_namespace);
 
     // Creating a mangled name using the current namespace and the symbol name
@@ -946,6 +997,8 @@ int JSEmitter::enterClass(Node *n) {
     Printf(mangled_name, "%s", Getattr(n, "classtype"));
     convertToMangledName(mangled_name);
     //
+
+
 
     // Printf(mangled_name, "%s_%s", Getattr(current_namespace, NAME_MANGLED), Getattr(n, "sym:name"));
 
@@ -976,6 +1029,7 @@ int JSEmitter::enterClass(Node *n) {
 }
 
 int JSEmitter::enterFunction(Node *n) {
+    auto& state = currentState();
     state.function(RESET);
     state.function(NAME, Getattr(n, "sym:name"));
     if (Equal(Getattr(n, "storage"), "static")) {
@@ -985,6 +1039,7 @@ int JSEmitter::enterFunction(Node *n) {
 }
 
 int JSEmitter::enterVariable(Node *n) {
+    auto& state = currentState();
     // reset the state information for variables.
     state.variable(RESET);
 
@@ -1017,14 +1072,34 @@ int JSEmitter::enterVariable(Node *n) {
     return SWIG_OK;
 }
 
+void JSEmitter::pushState() {
+    _stateStack.emplace();
+
+    auto& state = currentState();
+    state.globals(CREATE_NAMESPACES, NewString(""));
+    state.globals(REGISTER_NAMESPACES, NewString(""));
+    state.globals(INITIALIZER, NewString(""));
+    state.globals(REGISTER_CLASSES, NewString(""));
+    state.globals(REGISTER_GLOBAL, NewString(""));
+    state.globals(HEADER_REGISTER_MODULE, NewString(""));
+    state.globals(HEADER_REGISTER_CLASSES, NewString(""));
+}
+
+void JSEmitter::popState() {
+    _stateStack.pop();
+}
+
 int JSEmitter::emitCtor(Node *n) {
+    auto& state = currentState();
     Wrapper *wrapper = NewWrapper();
 
     bool is_overloaded = GetFlag(n, "sym:overloaded") != 0;
 
     Template t_ctor(getTemplate("js_ctor"));
 
-    String *wrap_name = Swig_name_wrapper(Getattr(n, "sym:name"));
+    String* symName = Getattr(n, "sym:name");
+    String *wrap_name = Swig_name_wrapper(symName);
+    
     if (is_overloaded) {
         t_ctor = getTemplate("js_overloaded_ctor");
         Append(wrap_name, Getattr(n, "sym:overname"));
@@ -1050,10 +1125,13 @@ int JSEmitter::emitCtor(Node *n) {
 
     emitCleanupCode(n, wrapper, params);
 
+    String* constructorHandlerSymname = Getattr(n, "constructorHandler:sym:name");
+
     t_ctor.replace("$jswrapper", wrap_name)
         .replace("$jsmangledtype", state.clazz(TYPE_MANGLED))
         .replace("$jsmangledname", state.clazz(NAME_MANGLED))
         .replace("$jsname", state.clazz(NAME))
+        .replace("$js_handler_symname", constructorHandlerSymname)
         .replace("$jslocals", wrapper->locals)
         .replace("$jscode", wrapper->code)
         .replace("$jsargcount", Getattr(n, ARGCOUNT))
@@ -1075,6 +1153,7 @@ int JSEmitter::emitCtor(Node *n) {
             t_mainctor.replace("$jswrapper", wrap_name)
                 .replace("$jsmangledname", state.clazz(NAME_MANGLED))
                 .replace("$jsname", state.clazz(NAME))
+                .replace("$js_handler_symname", constructorHandlerSymname)
                 .replace("$jsdispatchcases", state.clazz(CTOR_DISPATCHERS))
                 .pretty_print(s_wrappers);
 
@@ -1088,6 +1167,7 @@ int JSEmitter::emitCtor(Node *n) {
 }
 
 int JSEmitter::emitDtor(Node *n) {
+    auto& state = currentState();
     String *wrap_name = Swig_name_wrapper(Getattr(n, "sym:name"));
 
     SwigType *type = state.clazz(TYPE);
@@ -1211,6 +1291,7 @@ int JSEmitter::emitDtor(Node *n) {
 }
 
 int JSEmitter::emitGetter(Node *n, bool is_member, bool is_static) {
+    auto& state = currentState();
     // skip variables that are writeonly
     if (State::IsSet(state.variable(IS_WRITE_ONLY))) {
         return SWIG_OK;
@@ -1257,6 +1338,7 @@ int JSEmitter::emitGetter(Node *n, bool is_member, bool is_static) {
 }
 
 int JSEmitter::emitSetter(Node *n, bool is_member, bool is_static) {
+    auto& state = currentState();
     // skip variables that are immutable
     if (State::IsSet(state.variable(IS_IMMUTABLE))) {
         return SWIG_OK;
@@ -1324,6 +1406,7 @@ int JSEmitter::emitSetter(Node *n, bool is_member, bool is_static) {
  * ----------------------------------------------------------------------------- */
 
 int JSEmitter::emitConstant(Node *n) {
+    auto& state = currentState();
     // HACK: somehow it happened under Mac OS X that before everything started
     // a lot of SWIG internal constants were emitted
     // This didn't happen on other platforms yet...
@@ -1383,6 +1466,7 @@ int JSEmitter::emitConstant(Node *n) {
 }
 
 int JSEmitter::emitFunction(Node *n, bool is_member, bool is_static) {
+    auto& state = currentState();
     Wrapper *wrapper = NewWrapper();
     Template t_function(getTemplate("js_function"));
 
@@ -1445,6 +1529,7 @@ int JSEmitter::emitFunction(Node *n, bool is_member, bool is_static) {
 }
 
 int JSEmitter::emitFunctionDispatcher(Node *n, bool /*is_member */) {
+    auto& state = currentState();
     Wrapper *wrapper = NewWrapper();
 
     // Generate call list, go to first node
@@ -1849,14 +1934,6 @@ int CocosEmitter::initialize(Node *n) {
     s_header = NewString("");
     s_header_file = NewString("");
 
-    state.globals(CREATE_NAMESPACES, NewString(""));
-    state.globals(REGISTER_NAMESPACES, NewString(""));
-    state.globals(INITIALIZER, NewString(""));
-    state.globals(REGISTER_CLASSES, NewString(""));
-    state.globals(REGISTER_GLOBAL, NewString(""));
-    state.globals(HEADER_REGISTER_MODULE, NewString(""));
-    state.globals(HEADER_REGISTER_CLASSES, NewString(""));
-
     /* Register file targets with the SWIG file handler */
     Swig_register_filebyname("begin", f_wrap_cpp);
     Swig_register_filebyname("header", s_header);
@@ -1872,6 +1949,7 @@ int CocosEmitter::initialize(Node *n) {
 }
 
 int CocosEmitter::dump(Node *n) {
+    auto& state = currentState();
     /* Get the module name */
     String *module = Getattr(n, "name");
 
@@ -1928,6 +2006,7 @@ int CocosEmitter::enterFunction(Node *n) {
 }
 
 int CocosEmitter::exitFunction(Node *n) {
+    auto& state = currentState();
     bool is_member = GetFlag(n, "ismember") != 0 || GetFlag(n, "feature:extend") != 0;
     bool is_overloaded = GetFlag(n, "sym:overloaded") != 0;
 
@@ -1969,6 +2048,7 @@ int CocosEmitter::exitFunction(Node *n) {
 int CocosEmitter::enterVariable(Node *n) {
     JSEmitter::enterVariable(n);
 
+    auto& state = currentState();
     auto* vetoGet = Copy(VETO_GET);
     state.variable(GETTER, vetoGet);
     Delete(vetoGet);
@@ -1977,13 +2057,14 @@ int CocosEmitter::enterVariable(Node *n) {
     state.variable(SETTER, vetoSet);
     Delete(vetoSet);
 
-    Swig_print(NewStringf("~~~~ \nenterVariable: %s\ngetter: %s\nsetter: %s\n~~~~", Getattr(n, "name"), state.variable(GETTER), state.variable(SETTER)));
+//cjh    Swig_print(NewStringf("~~~~ \nenterVariable: %s\ngetter: %s\nsetter: %s\n~~~~", Getattr(n, "name"), state.variable(GETTER), state.variable(SETTER)));
 
     return SWIG_OK;
 }
 
 int CocosEmitter::exitVariable(Node *n) {
-    Swig_print(NewStringf("-----\nname: %s\ngetter: %s\nsetter: %s\n-------", state.variable(NAME), state.variable(GETTER), state.variable(SETTER)));
+    auto& state = currentState();
+//cjh    Swig_print(NewStringf("-----\nname: %s\ngetter: %s\nsetter: %s\n-------", state.variable(NAME), state.variable(GETTER), state.variable(SETTER)));
 
     if (GetFlag(n, "ismember")) {
         if (GetFlag(state.variable(), IS_STATIC) || Equal(Getattr(n, "nodeType"), "enumitem")) {
@@ -2014,22 +2095,39 @@ int CocosEmitter::exitVariable(Node *n) {
 }
 
 int CocosEmitter::enterClass(Node *n) {
+    pushState();
+
     JSEmitter::enterClass(n);
-    state.clazz(MEMBER_VARIABLES, NewString(""));
-    state.clazz(MEMBER_FUNCTIONS, NewString(""));
-    state.clazz(STATIC_VARIABLES, NewString(""));
-    state.clazz(STATIC_FUNCTIONS, NewString(""));
+    auto& state = currentState();
+    state.clazz(MEMBER_VARIABLES, NewStringEmpty());
+    state.clazz(MEMBER_FUNCTIONS, NewStringEmpty());
+    state.clazz(STATIC_VARIABLES, NewStringEmpty());
+    state.clazz(STATIC_FUNCTIONS, NewStringEmpty());
+
+    String* finalizerFunction = nullptr;
+    auto* nestClassNameList = state.clazz(NEST_CLASS_NAME_LIST);
+    if (nestClassNameList != nullptr){
+        finalizerFunction = joinClassSymNameWithList(nestClassNameList, "_");
+    }
+    else {
+        finalizerFunction = state.clazz(NAME);
+    }
 
     Template t_class_decl = getTemplate("jsc_class_declaration");
     String *type = SwigType_manglestr(Getattr(n, "classtypeobj"));
     t_class_decl.replace("$jsmangledname", state.clazz(NAME_MANGLED))
-        .replace("$jsname", state.clazz(NAME))
+        .replace("$jsdtor", finalizerFunction)
         .pretty_print(s_wrappers);
+
+    if (nestClassNameList != nullptr) {
+        Delete(finalizerFunction);
+    }
 
     return SWIG_OK;
 }
 
 int CocosEmitter::exitClass(Node *n) {
+    auto& state = currentState();
     Clear(state.globals(INITIALIZER));
 
     /* adds the ctor wrappers at this position */
@@ -2048,8 +2146,26 @@ int CocosEmitter::exitClass(Node *n) {
 
 
     /* prepare registration of base class */
-    String *jsclass_inheritance = NewString("");
+    String *jsclass_inheritance = NewStringEmpty();
     Node *base_class = getBaseClass(n);
+    auto* nestClassNameList = state.clazz(NEST_CLASS_NAME_LIST);
+    String* jsname = NewStringEmpty();
+    if (nestClassNameList) {
+        Append(jsname, "###cc");
+        int sz = Len(nestClassNameList);
+        for (int i = 0; i < sz; i++) {
+            String *s = Getitem(nestClassNameList, i);
+            Printf(jsname, "\"%s\"", s);
+            if (i != (sz-1)) {
+                Append(jsname, ", ");
+            }
+        }
+        Append(jsname, "cc###");
+    }
+    else {
+        Printf(jsname, "\"%s\"", state.clazz(NAME));
+    }
+
     if (base_class != NULL) {
         String *baseClassNameMangled = NewString("");
         Printf(baseClassNameMangled, "%s", Getattr(base_class, "classtype"));
@@ -2057,19 +2173,23 @@ int CocosEmitter::exitClass(Node *n) {
 
         Template t_inherit(getTemplate("jsc_class_inherit"));
         t_inherit.replace("$jsmangledname", state.clazz(NAME_MANGLED))
-            .replace("$jsname", state.clazz(NAME))
+            .replace("$jsname", jsname)
             .replace("$jsctor", state.clazz(CTOR))
             .replace("$jsbaseclassmangled", baseClassNameMangled)
             .pretty_print(jsclass_inheritance);
 
         Delete(baseClassNameMangled);
+
     } else {
         Template t_inherit(getTemplate("jsc_class_noinherit"));
         t_inherit.replace("$jsmangledname", state.clazz(NAME_MANGLED))
-            .replace("$jsname", state.clazz(NAME))
+            .replace("$jsname", jsname)
             .replace("$jsctor", state.clazz(CTOR))
             .pretty_print(jsclass_inheritance);
     }
+
+    Delete(jsname);
+    jsname = nullptr;
 
     String* jsclassname = Copy(Getattr(n, "classtype"));
     Replaceall(jsclassname, "(", "");
@@ -2100,6 +2220,11 @@ int CocosEmitter::exitClass(Node *n) {
 
     t_classtemplate.pretty_print(state.globals(INITIALIZER));
 
+    //NOTE: pretty_print will format '{' & '}' with new lines, but that is not we want.
+    // We use ###cc to replace '{' and cc### to replace '}' in the above code,
+    // Replace it back to '{' and '}' after pretty_print is invoked.
+    Replace(state.globals(INITIALIZER), "###cc", "{", DOH_REPLACE_ANY);
+    Replace(state.globals(INITIALIZER), "cc###", "}", DOH_REPLACE_ANY);
 
     Delete(jsclass_inheritance);
 
@@ -2126,30 +2251,27 @@ int CocosEmitter::exitClass(Node *n) {
 
     Printv(s_wrappers, state.globals(INITIALIZER), 0); //cjh added
 
-    // sevalue_to_native conversion for struct
-
-    //
-
     /* adds a class registration statement to initializer function */
     Template t_registerclass(getTemplate("jsc_class_registration"));
     t_registerclass.replace("$jsname", state.clazz(NAME))
         .replace("$jsmangledname", state.clazz(NAME_MANGLED))
         .replace("$jsnspace", Getattr(state.clazz("nspace"), NAME_MANGLED))
-        .pretty_print(state.globals(REGISTER_CLASSES));
+        .pretty_print(_rootState->globals(REGISTER_CLASSES));
 
     Template t_headerRegisterClass(getTemplate("se_global_variables"));
     t_headerRegisterClass.replace("$jsclassname", jsclassname)
         .replace("$jsmangledname", state.clazz(NAME_MANGLED))
-        .pretty_print(state.globals(HEADER_REGISTER_CLASSES));
+        .pretty_print(_rootState->globals(HEADER_REGISTER_CLASSES));
 
     if (isStruct) {
         Template jsc_struct_prop_conversion_declare(getTemplate("jsc_struct_prop_conversion_declare"));
         jsc_struct_prop_conversion_declare.replace("$jsclassname", jsclassname)
-            .pretty_print(state.globals(HEADER_REGISTER_CLASSES));
+            .pretty_print(_rootState->globals(HEADER_REGISTER_CLASSES));
     }
 
     Delete(jsclassname);
 
+    popState();
     return SWIG_OK;
 }
 
@@ -2161,6 +2283,7 @@ Hash *CocosEmitter::createNamespaceEntry(const char *name, const char *parent, c
 }
 
 int CocosEmitter::emitNamespaces() {
+    auto& state = currentState();
     Iterator it;
     for (it = First(namespaces); it.item; it = Next(it)) {
         Hash *entry = it.item;
