@@ -1097,8 +1097,15 @@ int JSEmitter::emitCtor(Node *n) {
 
     Template t_ctor(getTemplate("js_ctor"));
 
-    String* symName = Getattr(n, "sym:name");
+    auto * classNode = getClassNode(n);
+    auto* symName = Copy(Getattr(classNode, "classtype"));
+    convertToMangledName(symName);
+    auto* dtorSymName = Copy(symName);
+    Insert(symName, 0, "new_");
+
     String *wrap_name = Swig_name_wrapper(symName);
+    Delete(symName);
+    symName = nullptr;
     
     if (is_overloaded) {
         t_ctor = getTemplate("js_overloaded_ctor");
@@ -1125,13 +1132,12 @@ int JSEmitter::emitCtor(Node *n) {
 
     emitCleanupCode(n, wrapper, params);
 
-    String* constructorHandlerSymname = Getattr(n, "constructorHandler:sym:name");
 
     t_ctor.replace("$jswrapper", wrap_name)
         .replace("$jsmangledtype", state.clazz(TYPE_MANGLED))
         .replace("$jsmangledname", state.clazz(NAME_MANGLED))
         .replace("$jsname", state.clazz(NAME))
-        .replace("$js_handler_symname", constructorHandlerSymname)
+        .replace("$jsdtor", dtorSymName)
         .replace("$jslocals", wrapper->locals)
         .replace("$jscode", wrapper->code)
         .replace("$jsargcount", Getattr(n, ARGCOUNT))
@@ -1153,7 +1159,7 @@ int JSEmitter::emitCtor(Node *n) {
             t_mainctor.replace("$jswrapper", wrap_name)
                 .replace("$jsmangledname", state.clazz(NAME_MANGLED))
                 .replace("$jsname", state.clazz(NAME))
-                .replace("$js_handler_symname", constructorHandlerSymname)
+                .replace("$jsdtor", dtorSymName)
                 .replace("$jsdispatchcases", state.clazz(CTOR_DISPATCHERS))
                 .pretty_print(s_wrappers);
 
@@ -1163,12 +1169,23 @@ int JSEmitter::emitCtor(Node *n) {
         Printf(state.clazz(CTOR), "_SE(%s)", wrap_name);
     }
 
+    Delete(dtorSymName);
+
     return SWIG_OK;
 }
 
 int JSEmitter::emitDtor(Node *n) {
     auto& state = currentState();
-    String *wrap_name = Swig_name_wrapper(Getattr(n, "sym:name"));
+
+    auto * classNode = getClassNode(n);
+    auto* symName = Copy(Getattr(classNode, "classtype"));
+
+    convertToMangledName(symName);
+    Insert(symName, 0, "delete_");
+
+    String *wrap_name = Swig_name_wrapper(symName);
+    Delete(symName);
+    symName = nullptr;
 
     SwigType *type = state.clazz(TYPE);
     String *p_classtype = SwigType_add_pointer(state.clazz(TYPE));
@@ -1290,6 +1307,39 @@ int JSEmitter::emitDtor(Node *n) {
     return SWIG_OK;
 }
 
+static String* getVariableWrapName(Node* n, bool isGetter) {
+    String *wrap_name = nullptr;
+    auto* varWrapperName = Copy(Getattr(n, "variableWrapper:name"));
+    if (varWrapperName) {
+        convertToMangledName(varWrapperName);
+        wrap_name = Swig_name_wrapper(varWrapperName);
+        if (isGetter) {
+            Append(wrap_name, "_get");
+        }
+        else {
+            Append(wrap_name, "_set");
+        }
+
+        Delete(varWrapperName);
+        varWrapperName = nullptr;
+    }
+    else {
+        auto* symName = Copy(Getattr(n, "sym:name"));
+        auto namespaceNameArray = getNamespaceNameArray(n);
+        if (!namespaceNameArray.empty()) {
+            std::string namespaceName = join(namespaceNameArray, "_");
+            namespaceName.append("_");
+            Insert(symName, 0, namespaceName.c_str());
+        }
+
+        wrap_name = Swig_name_wrapper(symName);
+
+        Delete(symName);
+    }
+
+    return wrap_name;
+}
+
 int JSEmitter::emitGetter(Node *n, bool is_member, bool is_static) {
     auto& state = currentState();
     // skip variables that are writeonly
@@ -1304,9 +1354,9 @@ int JSEmitter::emitGetter(Node *n, bool is_member, bool is_static) {
     Template t_getter(getTemplate("js_getter"));
 
     // prepare wrapper name
-    String *wrap_name = Swig_name_wrapper(Getattr(n, "sym:name"));
+    String* wrap_name = getVariableWrapName(n, true);
     Setattr(n, "wrap:name", wrap_name);
-    Swig_print(wrap_name);
+
     Clear(state.variable(GETTER));
     Printf(state.variable(GETTER), "_SE(%s)", wrap_name);
 
@@ -1333,6 +1383,7 @@ int JSEmitter::emitGetter(Node *n, bool is_member, bool is_static) {
         .pretty_print(s_wrappers);
 
     DelWrapper(wrapper);
+    Delete(wrap_name);
 
     return SWIG_OK;
 }
@@ -1351,7 +1402,7 @@ int JSEmitter::emitSetter(Node *n, bool is_member, bool is_static) {
     Template t_setter(getTemplate("js_setter"));
 
     // prepare wrapper name
-    String *wrap_name = Swig_name_wrapper(Getattr(n, "sym:name"));
+    String* wrap_name = getVariableWrapName(n, false);
     Setattr(n, "wrap:name", wrap_name);
     Clear(state.variable(SETTER));
     Printf(state.variable(SETTER), "_SE(%s)", wrap_name);
@@ -2108,9 +2159,15 @@ int CocosEmitter::enterClass(Node *n) {
     auto* nestClassNameList = state.clazz(NEST_CLASS_NAME_LIST);
     if (nestClassNameList != nullptr){
         finalizerFunction = joinClassSymNameWithList(nestClassNameList, "_");
+        auto namespaceNameArray = getNamespaceNameArray(n);
+        if (!namespaceNameArray.empty()) {
+            std::string namespaceName = join(namespaceNameArray, "_");
+            namespaceName.append("_");
+            Insert(finalizerFunction, 0, namespaceName.c_str());
+        }
     }
     else {
-        finalizerFunction = state.clazz(NAME);
+        finalizerFunction = state.clazz(NAME_MANGLED);
     }
 
     Template t_class_decl = getTemplate("jsc_class_declaration");

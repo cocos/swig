@@ -25,7 +25,7 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
     s.thisObject()->setPrivateObject(ptr);
     return true;
 }
-SE_BIND_CTOR($jswrapper, __jsb_$jsmangledname_class, js_delete_$js_handler_symname)%}
+SE_BIND_CTOR($jswrapper, __jsb_$jsmangledname_class, js_delete_$jsdtor)%}
 
 /* -----------------------------------------------------------------------------
  * js_ctor_dispatcher:  dispatcher for overloaded constructors
@@ -48,7 +48,7 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
     SE_REPORT_ERROR("Illegal arguments for construction of $jsname");
     return false;
 }
-SE_BIND_CTOR($jswrapper, __jsb_$jsmangledname_class, js_delete_$js_handler_symname)%}
+SE_BIND_CTOR($jswrapper, __jsb_$jsmangledname_class, js_delete_$jsdtor)%}
 
 /* -----------------------------------------------------------------------------
  * js_overloaded_ctor:  template for wrapping a ctor.
