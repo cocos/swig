@@ -1025,6 +1025,13 @@ int JSEmitter::enterClass(Node *n) {
     // this is resolved by emitCtor (which is only called for non abstract classes)
     SetFlag(state.clazz(), IS_ABSTRACT);
 
+    /* adds a class registration statement to initializer function */
+    Template t_registerclass(getTemplate("jsc_class_registration"));
+    t_registerclass.replace("$jsname", state.clazz(NAME))
+        .replace("$jsmangledname", state.clazz(NAME_MANGLED))
+        .replace("$jsnspace", Getattr(state.clazz("nspace"), NAME_MANGLED))
+        .pretty_print(_rootState->globals(REGISTER_CLASSES));
+
     return SWIG_OK;
 }
 
@@ -2308,12 +2315,7 @@ int CocosEmitter::exitClass(Node *n) {
 
     Printv(s_wrappers, state.globals(INITIALIZER), 0); //cjh added
 
-    /* adds a class registration statement to initializer function */
-    Template t_registerclass(getTemplate("jsc_class_registration"));
-    t_registerclass.replace("$jsname", state.clazz(NAME))
-        .replace("$jsmangledname", state.clazz(NAME_MANGLED))
-        .replace("$jsnspace", Getattr(state.clazz("nspace"), NAME_MANGLED))
-        .pretty_print(_rootState->globals(REGISTER_CLASSES));
+
 
     Template t_headerRegisterClass(getTemplate("se_global_variables"));
     t_headerRegisterClass.replace("$jsclassname", jsclassname)
