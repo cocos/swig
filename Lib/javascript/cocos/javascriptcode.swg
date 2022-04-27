@@ -16,7 +16,7 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
     size_t argc = args.size();
     if (argc != $jsargcount) {
       SE_REPORT_ERROR("$jswrapper wrong number of arguments: %d, was expecting %d", (int)argc, $jsargcount);
-      return;
+      return false;
     }
 
     $jslocals
