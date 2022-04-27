@@ -475,27 +475,27 @@ parameters match which function
 
 #endif // __cplusplus
 
-%typemap(memberin) float [ANY] {
-  int i;
-  for (i = 0; i < $1_dim0; i++) {
-    $1[i] = $input[i];
-  }
-}
+// %typemap(memberin) float [ANY] {
+//   int i;
+//   for (i = 0; i < $1_dim0; i++) {
+//     $1[i] = $input[i];
+//   }
+// }
 
-%typemap(out) float [ANY] {
-  int i;
-  $result = PyList_New($1_dim0);
-  for (i = 0; i < $1_dim0; i++) {
-    PyObject *o = PyFloat_FromDouble((double) $1[i]);
-    PyList_SetItem($result, i, o);
-  }
-}
+// %typemap(out) float [ANY] {
+//   int i;
+//   $result = PyList_New($1_dim0);
+//   for (i = 0; i < $1_dim0; i++) {
+//     PyObject *o = PyFloat_FromDouble((double) $1[i]);
+//     PyList_SetItem($result, i, o);
+//   }
+// }
 
-%typemap(check) double %{ 
-  if ($1 < 0) {
-    croak("hahaha Expecting a positive number"); 
-  }
-%}
+// %typemap(check) double %{ 
+//   if ($1 < 0) {
+//     croak("hahaha Expecting a positive number"); 
+//   }
+// %}
 
 // Cocos custom type
 

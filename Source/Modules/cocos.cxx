@@ -152,7 +152,24 @@ static std::vector<std::string> getNamespaceNameArray(Node* n) {
     return namespaceArray;
 }
 
-static std::string getPropertyName(Node* n) {
+struct PropertyName {
+    std::string name;
+    std::string symName;
+
+    bool isValid() const {
+        return !name.empty() && !symName.empty();
+    }
+};
+
+static std::string fixCppKeyword(const std::string& s) {
+    static const char CPP_KEYWORD_PREFIX[] = "cpp_keyword_";
+    if (0 == s.find(CPP_KEYWORD_PREFIX)) {
+        return s.substr(sizeof(CPP_KEYWORD_PREFIX)-1);
+    }
+    return s;
+}
+
+static PropertyName getPropertyName(Node* n) {
     if (0 == Cmp(Getattr(n, "kind"), "variable")) {
         String* storage = Getattr(n, "storage");
         String* access = Getattr(n, "access");
@@ -161,20 +178,23 @@ static std::string getPropertyName(Node* n) {
         if (!needIgnore
             && 0 == Cmp(access, "public")
             && 0 != Cmp(storage, "static")) {
-            return Char(Getattr(n, "name"));
+            return {
+                std::string(Char(Getattr(n, "name"))),
+                fixCppKeyword(Char(Getattr(n, "sym:name")))
+            };
         }
     }
-    return "";
+    return {};
 }
 
-static std::vector<std::string> getStructProperties(Node* n) {
-    std::vector<std::string> ret;
+static std::vector<PropertyName> getStructProperties(Node* n) {
+    std::vector<PropertyName> ret;
     auto* nodeType = nodeType(n);
     if (0 == Cmp(nodeType, "class")) {
         auto* child = firstChild(n);
         if (child != nullptr) {
             auto name = getPropertyName(child);
-            if (!name.empty()) {
+            if (name.isValid()) {
                 ret.emplace_back(name);
             }
 
@@ -187,7 +207,7 @@ static std::vector<std::string> getStructProperties(Node* n) {
                 }
 
                 name = getPropertyName(next);
-                if (!name.empty()) {
+                if (name.isValid()) {
                     ret.emplace_back(name);
                 }
 
@@ -2080,22 +2100,24 @@ int CocosEmitter::exitFunction(Node *n) {
         }
     }
 
+    std::string jsname = fixCppKeyword(Char(state.function(NAME)));
+
     if (is_member) {
         if (GetFlag(state.function(), IS_STATIC)) {
             Template t_static_function = getTemplate("jsc_static_function_declaration");
-            t_static_function.replace("$jsname", state.function(NAME))
+            t_static_function.replace("$jsname", jsname.c_str())
                 .replace("$jswrapper", state.function(WRAPPER_NAME));
 
             t_static_function.pretty_print(state.clazz(STATIC_FUNCTIONS));
         } else {
             Template t_function = getTemplate("jsc_function_declaration");
-            t_function.replace("$jsname", state.function(NAME))
+            t_function.replace("$jsname", jsname.c_str())
                 .replace("$jswrapper", state.function(WRAPPER_NAME));
             t_function.pretty_print(state.clazz(MEMBER_FUNCTIONS));
         }
     } else {
         Template t_function = getTemplate("jsc_global_function_declaration");
-        t_function.replace("$jsname", state.function(NAME))
+        t_function.replace("$jsname", jsname.c_str())
             .replace("$jswrapper", state.function(WRAPPER_NAME));
         t_function.pretty_print(Getattr(current_namespace, "functions"));
     }
@@ -2124,17 +2146,20 @@ int CocosEmitter::exitVariable(Node *n) {
     auto& state = currentState();
 //cjh    Swig_print(NewStringf("-----\nname: %s\ngetter: %s\nsetter: %s\n-------", state.variable(NAME), state.variable(GETTER), state.variable(SETTER)));
 
+    std::string jsname = fixCppKeyword(Char(state.variable(NAME)));
+
     if (GetFlag(n, "ismember")) {
         if (GetFlag(state.variable(), IS_STATIC) || Equal(Getattr(n, "nodeType"), "enumitem")) {
             Template t_static_variable(getTemplate("jsc_static_variable_declaration"));
-            t_static_variable.replace("$jsname", state.variable(NAME))
+            t_static_variable.replace("$jsname", jsname.c_str())
                 .replace("$jsgetter", state.variable(GETTER))
                 .replace("$jssetter", state.variable(SETTER));
 
             t_static_variable.pretty_print(state.clazz(STATIC_VARIABLES));
         } else {
+
             Template t_variable(getTemplate("jsc_variable_declaration"));
-            t_variable.replace("$jsname", state.variable(NAME))
+            t_variable.replace("$jsname", jsname.c_str())
                 .replace("$jsgetter", state.variable(GETTER))
                 .replace("$jssetter", state.variable(SETTER));
 
@@ -2142,7 +2167,7 @@ int CocosEmitter::exitVariable(Node *n) {
         }
     } else {
         Template t_variable(getTemplate("jsc_global_variable_declaration"));
-        t_variable.replace("$jsname", state.variable(NAME))
+        t_variable.replace("$jsname", jsname.c_str())
             .replace("$jsgetter", state.variable(GETTER))
             .replace("$jssetter", state.variable(SETTER));
 
@@ -2301,7 +2326,8 @@ int CocosEmitter::exitClass(Node *n) {
         auto propertyNames = getStructProperties(n);
         for (const auto& propertyName : propertyNames) {
             Template t_jsc_struct_prop_snippet(getTemplate("jsc_struct_prop_snippet"));
-            t_jsc_struct_prop_snippet.replace("$field_name", propertyName.c_str())
+            t_jsc_struct_prop_snippet.replace("$field_name", propertyName.name.c_str())
+                .replace("$field_symname", propertyName.symName.c_str())
                 .pretty_print(propertyConversionCode);
         }
 

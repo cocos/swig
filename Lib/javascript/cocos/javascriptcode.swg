@@ -323,7 +323,7 @@ bool js_register_$jsmangledname(se::Object* obj) {
   $jsglobalfunctions %}
 
 %fragment ("jsc_struct_prop_snippet", "templates") %{
-    json->getProperty("$field_name", &field, true);
+    json->getProperty("$field_symname", &field, true);
     if (!field.isNullOrUndefined()) {
         ok &= sevalue_to_native(field, &(to->$field_name), ctx);
     }
