@@ -1159,6 +1159,14 @@ int JSEmitter::emitCtor(Node *n) {
 
     emitCleanupCode(n, wrapper, params);
 
+    String* jsCheckArgCountStr = NewStringEmpty();
+    auto* argCount = Getattr(n, ARGCOUNT);
+    if (0 != Cmp(argCount, "0")) {
+        Template t_check_arg_count(getTemplate("js_check_arg_count"));
+        t_check_arg_count.replace("$jswrapper", wrap_name)
+            .replace("$jsargcount", argCount)
+            .pretty_print(jsCheckArgCountStr);
+    }
 
     t_ctor.replace("$jswrapper", wrap_name)
         .replace("$jsmangledtype", state.clazz(TYPE_MANGLED))
@@ -1167,12 +1175,16 @@ int JSEmitter::emitCtor(Node *n) {
         .replace("$jsdtor", dtorSymName)
         .replace("$jslocals", wrapper->locals)
         .replace("$jscode", wrapper->code)
-        .replace("$jsargcount", Getattr(n, ARGCOUNT))
+        .replace("$jsargcount", argCount)
+        .replace("$js_check_arg_count", jsCheckArgCountStr)
         .pretty_print(s_wrappers);
+
+    Delete(jsCheckArgCountStr);
+    jsCheckArgCountStr = nullptr;
 
     Template t_ctor_case(getTemplate("js_ctor_dispatch_case"));
     t_ctor_case.replace("$jswrapper", wrap_name)
-        .replace("$jsargcount", Getattr(n, ARGCOUNT));
+        .replace("$jsargcount", argCount);
     Append(state.clazz(CTOR_DISPATCHERS), t_ctor_case.str());
 
     DelWrapper(wrapper);

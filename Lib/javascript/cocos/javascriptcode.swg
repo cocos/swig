@@ -1,3 +1,9 @@
+%fragment ("js_check_arg_count", "templates") %{
+    if (argc != $jsargcount) {
+        SE_REPORT_ERROR("$jswrapper: wrong number of arguments: %d, was expecting %d", (int)argc, $jsargcount);
+        return false;
+    }%}
+
 /* -----------------------------------------------------------------------------
  * js_ctor:  template for wrapping a ctor.
  *   - $jswrapper:        wrapper of called ctor
@@ -14,11 +20,7 @@ static bool $jswrapper(se::State& s) // NOLINT(readability-identifier-naming)
     CC_UNUSED bool ok = true;
     const auto& args = s.args();
     size_t argc = args.size();
-    if (argc != $jsargcount) {
-      SE_REPORT_ERROR("$jswrapper wrong number of arguments: %d, was expecting %d", (int)argc, $jsargcount);
-      return false;
-    }
-
+    $js_check_arg_count
     $jslocals
     $jscode
     auto *ptr = JSB_MAKE_PRIVATE_OBJECT_WITH_INSTANCE(result);
