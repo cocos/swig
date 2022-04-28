@@ -151,7 +151,7 @@
 
 // strings (char * and char[])
 
-%typemap(in) const char * (std::string temp), char * (std::string temp)
+%typemap(in) const char * (ccstd::string temp), char * (ccstd::string temp)
 %{ 
    ok &= sevalue_to_native($input, &temp);
    SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");
