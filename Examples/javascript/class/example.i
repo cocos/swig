@@ -23,38 +23,91 @@
 %}
 %enddef
 
-static void hello_static_global();
+%module_macro(USE_A_CLASS) A;
+class A {
 
-void hello_global();
-
-extern int aaa;
-static int staticAAA;
-
-// struct StaticPropTest {
-//     static float staticFloatProp;
-// };
-
-// struct MySize {
-//     float width;
-// // float height;
-// };
-
-extern int MY_MAX_VALUE;
-
-class Mesh {
-public:
-    static int MESH_AAA = 0;
-    struct ISubMesh {
-        int prop;
-        class SubSubClass {
-            public:
-            int ohno;
-        };
-    };
-    void foo();
-    static void staticFoo();
 };
 
+%release_returned_cpp_object_in_gc(TestFeature::createA);
+
+%module_macro(USE_TEST_FEATURE) TestFeature;
+
+%module_macro(USE_A) TestFeature::createA;
+%module_macro(USE_B) TestFeature::fooB;
+
+%module_macro(USE_OVERLOAD) TestFeature::testOverload;
+
+%module_macro(USE_GETTER_SETTER) TestFeature::myattr;
+
+%attribute(TestFeature, int, myattr, get_attr, set_attr);
+%attribute(TestFeature, int, myattr2, get_attr2, set_attr2);
+
+
+
+class TestFeature {
+public:
+    // %feature("module_macro", "USE_A");
+    static A* createA();
+
+    static void fooB();
+    void foo(int a, int b, A*);
+
+    void testOverload(int a);
+    void testOverload(int a, int b);
+    void testOverload(int a, int b, bool c);
+
+    void set_attr(int v);
+    int get_attr() const;
+
+    void set_attr2(int v);
+    int get_attr2() const;
+    
+    // float floatValue1;
+    // int intValue1;
+};
+
+class TestNoFeature {
+    public:
+    void hello();
+};
+
+// static void hello_static_global();
+
+// void hello_global();
+
+// extern int aaa;
+// static int staticAAA;
+
+// // struct StaticPropTest {
+// //     static float staticFloatProp;
+// // };
+
+// // struct MySize {
+// //     float width;
+// // // float height;
+// // };
+
+// extern int MY_MAX_VALUE;
+
+// class Mesh {
+// public:
+//     static int MESH_AAA = 0;
+//     struct ISubMesh {
+
+//         int prop;
+//         class SubSubClass {
+//             public:
+//             int ohno;
+//         };
+//     };
+//     void foo();
+//     static void staticFoo();
+// };
+
+// class Camera {
+// public:
+//     static constexpr int32_t SKYBOX_FLAG = 0;
+// };
 
 // %attribute(MyRect, MySize, size, getSize, setSize);
 // %attribute(MyRect, ccstd::string&, name, getName, setName);
@@ -176,7 +229,7 @@ public:
 
 // SWIG_MY_INCLUDE(Shape.h)
 
-SWIG_INCLUDE(example.h)
+// SWIG_INCLUDE(example.h)
 
 // class MyClass {
 // public:

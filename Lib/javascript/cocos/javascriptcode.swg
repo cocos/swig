@@ -129,9 +129,11 @@ SE_BIND_FINALIZE_FUNC($jswrapper) %}
 %{
 static bool $jswrapper(se::State& s)
 {
+    $js_getter_begin
     CC_UNUSED bool ok = true;
     $jslocals
     $jscode
+    $js_getter_end
     return true;
 }
 SE_BIND_PROP_GET($jswrapper) %}
@@ -146,11 +148,13 @@ SE_BIND_PROP_GET($jswrapper) %}
 %{
 static bool $jswrapper(se::State& s)
 {
+    $js_setter_begin
     CC_UNUSED bool ok = true;
     const auto& args = s.args();
     size_t argc = args.size();
     $jslocals
     $jscode
+    $js_setter_end
     return true;
 }
 SE_BIND_PROP_SET($jswrapper) %}
@@ -166,6 +170,7 @@ SE_BIND_PROP_SET($jswrapper) %}
 static bool $jswrapper(se::State& s)
 {
   // js_function
+  $js_func_begin
   CC_UNUSED bool ok = true;
   const auto& args = s.args();
   size_t argc = args.size();
@@ -175,6 +180,7 @@ static bool $jswrapper(se::State& s)
     return false;
   }
   $jscode
+  $js_func_end
   return true;
 }
 SE_BIND_FUNC($jswrapper) %}
@@ -211,10 +217,12 @@ SE_BIND_FUNC($jswrapper) %}
 %{
 static bool $jswrapper(se::State& s)
 {// js_overloaded_function
+  $js_func_begin
   CC_UNUSED bool ok = true;
   const auto& args = s.args();
   $jslocals
   $jscode
+  $js_func_end
   return true;
 }%}
 

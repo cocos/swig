@@ -238,6 +238,39 @@ static int getParamListCount(ParmList* params) {
     return count;
 }
 
+// Copied from emit.cxx
+/* -----------------------------------------------------------------------------
+ * emit_return_variable()
+ *
+ * Emits a variable declaration for a function return value.
+ * The variable name is always called result.
+ * n => Node of the method being wrapped
+ * rt => the return type
+ * f => the wrapper to generate code into
+ * ----------------------------------------------------------------------------- */
+
+static void cocos_emit_return_variable(Node *n, SwigType *rt, Wrapper *f) {
+
+  if (!GetFlag(n, "tmap:out:optimal")) {
+    if (rt && (SwigType_type(rt) != T_VOID)) {
+      SwigType *vt = nullptr;//cjh cplus_value_type(rt);
+      SwigType *tt = vt ? vt : rt;
+      SwigType *lt = SwigType_ltype(tt);
+      String *lstr = SwigType_str(lt, Swig_cresult_name());
+      if (SwigType_ispointer(lt)) {
+        Wrapper_add_localv(f, Swig_cresult_name(), lstr, "= 0", NULL);
+      } else {
+        Wrapper_add_local(f, Swig_cresult_name(), lstr);
+      }
+      if (vt) {
+        Delete(vt);
+      }
+      Delete(lt);
+      Delete(lstr);
+    }
+  }
+}
+
 /**
  * A convenience class to manage state variables for emitters.
  * The implementation delegates to SWIG Hash DOHs and provides
@@ -1045,12 +1078,21 @@ int JSEmitter::enterClass(Node *n) {
     // this is resolved by emitCtor (which is only called for non abstract classes)
     SetFlag(state.clazz(), IS_ABSTRACT);
 
+    String *moduleMacro = Getattr(n, "feature:module_macro");
+    if (moduleMacro) {
+        Printv(_rootState->globals(REGISTER_CLASSES), "#if ", moduleMacro, "\n", NIL);
+    }
+
     /* adds a class registration statement to initializer function */
     Template t_registerclass(getTemplate("jsc_class_registration"));
     t_registerclass.replace("$jsname", state.clazz(NAME))
         .replace("$jsmangledname", state.clazz(NAME_MANGLED))
         .replace("$jsnspace", Getattr(state.clazz("nspace"), NAME_MANGLED))
         .pretty_print(_rootState->globals(REGISTER_CLASSES));
+
+    if (moduleMacro) {
+        Printv(_rootState->globals(REGISTER_CLASSES), "#endif // ", moduleMacro, "\n", NIL);
+    }
 
     return SWIG_OK;
 }
@@ -1416,13 +1458,26 @@ int JSEmitter::emitGetter(Node *n, bool is_member, bool is_static) {
 
     emitCleanupCode(n, wrapper, params);
 
+    String *getter_begin = NewStringEmpty();
+    String *getter_end = NewStringEmpty();
+    String *moduleMacro = Getattr(n, "feature:module_macro");
+    if (moduleMacro) {
+        Printv(getter_begin, "#if ", moduleMacro, "\n", NIL);
+        Printv(getter_end, "#endif // ", moduleMacro, "\n", NIL);
+    }
+
     t_getter.replace("$jswrapper", wrap_name)
+        .replace("$js_getter_begin", getter_begin)
+        .replace("$js_getter_end", getter_end)
         .replace("$jslocals", wrapper->locals)
         .replace("$jscode", wrapper->code)
         .pretty_print(s_wrappers);
 
     DelWrapper(wrapper);
     Delete(wrap_name);
+
+    Delete(getter_begin);
+    Delete(getter_end);
 
     return SWIG_OK;
 }
@@ -1481,12 +1536,25 @@ int JSEmitter::emitSetter(Node *n, bool is_member, bool is_static) {
 
     emitCleanupCode(n, wrapper, params);
 
+    String *setter_begin = NewStringEmpty();
+    String *setter_end = NewStringEmpty();
+    String *moduleMacro = Getattr(n, "feature:module_macro");
+    if (moduleMacro) {
+        Printv(setter_begin, "#if ", moduleMacro, "\n", NIL);
+        Printv(setter_end, "#endif // ", moduleMacro, "\n", NIL);
+    }
+
     t_setter.replace("$jswrapper", wrap_name)
+        .replace("$js_setter_begin", setter_begin)
+        .replace("$js_setter_end", setter_end)
         .replace("$jslocals", wrapper->locals)
         .replace("$jscode", wrapper->code)
         .pretty_print(s_wrappers);
 
     DelWrapper(wrapper);
+
+    Delete(setter_begin);
+    Delete(setter_end);
 
     return SWIG_OK;
 }
@@ -1501,7 +1569,7 @@ int JSEmitter::emitConstant(Node *n) {
     // a lot of SWIG internal constants were emitted
     // This didn't happen on other platforms yet...
     // we ignore those premature definitions
-    if (!State::IsSet(state.globals(HAS_TEMPLATES))) {
+    if (!hasTemplates) {
         return SWIG_ERROR;
     }
 
@@ -1524,8 +1592,10 @@ int JSEmitter::emitConstant(Node *n) {
     // registered in same way
     enterVariable(n);
     Clear(state.variable(GETTER));
-    Swig_print(wname, -1);
     Printf(state.variable(GETTER), "_SE(%s)", wname);
+
+    Swig_print(state.variable(GETTER), -1); //cjh added
+
     // TODO: why do we need this?
     Setattr(n, "wrap:name", wname);
 
@@ -1544,6 +1614,8 @@ int JSEmitter::emitConstant(Node *n) {
     marshalOutput(n, 0, wrapper, NewString(""), value, false);
 
     t_getter.replace("$jswrapper", wname)
+        .replace("$js_getter_begin", "")
+        .replace("$js_getter_end", "")
         .replace("$jslocals", wrapper->locals)
         .replace("$jscode", wrapper->code)
         .pretty_print(s_wrappers);
@@ -1601,16 +1673,34 @@ int JSEmitter::emitFunction(Node *n, bool is_member, bool is_static) {
     marshalInputArgs(n, params, wrapper, Function, is_member, is_static);
     String *action = emit_action(n);
     marshalOutput(n, params, wrapper, action);
+
     emitCleanupCode(n, wrapper, params);
     Replaceall(wrapper->code, "$symname", iname);
 
+    if (Getattr(n, "feature:release_returned_cpp_object_in_gc")) {
+        Printv(wrapper->code, "s.rval().toObject()->getPrivateObject()->tryAllowDestroyInGC();\n", NIL);
+    }
+
+    String *func_begin = NewStringEmpty();
+    String *func_end = NewStringEmpty();
+    String *moduleMacro = Getattr(n, "feature:module_macro");
+    if (moduleMacro) {
+        Printv(func_begin, "#if ", moduleMacro, "\n", NIL);
+        Printv(func_end, "#endif // ", moduleMacro, "\n", NIL);
+    }
+
     t_function.replace("$jswrapper", wrap_name)
+        .replace("$js_func_begin", func_begin)
+        .replace("$js_func_end", func_end)
         .replace("$jslocals", wrapper->locals)
         .replace("$jscode", wrapper->code)
         .replace("$jsargcount", Getattr(n, ARGCOUNT))
         .pretty_print(s_wrappers);
 
     DelWrapper(wrapper);
+
+    Delete(func_begin);
+    Delete(func_end);
 
     Delete(iname);
     Delete(wrap_name);
@@ -1706,7 +1796,7 @@ void JSEmitter::marshalOutput(Node *n, ParmList *params, Wrapper *wrapper, Strin
 
     // adds a declaration for the result variable
     if (emitReturnVariable)
-        emit_return_variable(n, type, wrapper);
+        cocos_emit_return_variable(n, type, wrapper);
     // if not given, use default result identifier ('result') for output typemap
     if (cresult == 0)
         cresult = defaultResultName;
@@ -2155,12 +2245,19 @@ int CocosEmitter::enterVariable(Node *n) {
 }
 
 int CocosEmitter::exitVariable(Node *n) {
+    if (GetFlag(n, "is_handled")) {
+        return SWIG_OK;
+    }
+    
     auto& state = currentState();
 //cjh    Swig_print(NewStringf("-----\nname: %s\ngetter: %s\nsetter: %s\n-------", state.variable(NAME), state.variable(GETTER), state.variable(SETTER)));
 
     std::string jsname = fixCppKeyword(Char(state.variable(NAME)));
 
     if (GetFlag(n, "ismember")) {
+        Swig_print(NewString("----"));
+        Swig_print(state.variable(GETTER), -1); //cjh added
+
         if (GetFlag(state.variable(), IS_STATIC) || Equal(Getattr(n, "nodeType"), "enumitem")) {
             Template t_static_variable(getTemplate("jsc_static_variable_declaration"));
             t_static_variable.replace("$jsname", jsname.c_str())
@@ -2186,6 +2283,9 @@ int CocosEmitter::exitVariable(Node *n) {
         t_variable.pretty_print(Getattr(current_namespace, "values"));
     }
 
+    //cjh added
+    SetFlag(n, "is_handled");
+
     return SWIG_OK;
 }
 
@@ -2194,7 +2294,7 @@ int CocosEmitter::enterClass(Node *n) {
 
     JSEmitter::enterClass(n);
     auto& state = currentState();
-    state.clazz(MEMBER_VARIABLES, NewStringEmpty());
+    state.clazz(MEMBER_VARIABLES, NewStringEmpty());//NewStringEmpty Memory leak?
     state.clazz(MEMBER_FUNCTIONS, NewStringEmpty());
     state.clazz(STATIC_VARIABLES, NewStringEmpty());
     state.clazz(STATIC_FUNCTIONS, NewStringEmpty());
@@ -2212,6 +2312,11 @@ int CocosEmitter::enterClass(Node *n) {
     }
     else {
         finalizerFunction = state.clazz(NAME_MANGLED);
+    }
+
+    String *moduleMacro = Getattr(n, "feature:module_macro");
+    if (moduleMacro) {
+        Printv(s_wrappers, "#if ", moduleMacro, "\n", NIL);
     }
 
     Template t_class_decl = getTemplate("jsc_class_declaration");
@@ -2303,6 +2408,9 @@ int CocosEmitter::exitClass(Node *n) {
             .pretty_print(s_jsc_finalize_function);
     }
 
+    std::string static_variables = Char(state.clazz(MEMBER_VARIABLES));
+    printf("cjh static_variables: %s\n", static_variables.c_str());
+
     /* adds a class template statement to initializer function */
     Template t_classtemplate(getTemplate("jsc_class_definition"));
     t_classtemplate.replace("$jsmangledname", state.clazz(NAME_MANGLED))
@@ -2353,7 +2461,12 @@ int CocosEmitter::exitClass(Node *n) {
 
     Printv(s_wrappers, state.globals(INITIALIZER), 0); //cjh added
 
+    String *moduleMacro = Getattr(n, "feature:module_macro");
+    if (moduleMacro) {
+        Printv(s_wrappers, "#endif // ", moduleMacro, "\n", NIL);
 
+        Printv(_rootState->globals(HEADER_REGISTER_CLASSES), "#if ", moduleMacro, "\n", NIL);
+    }
 
     Template t_headerRegisterClass(getTemplate("se_global_variables"));
     t_headerRegisterClass.replace("$jsclassname", jsclassname)
@@ -2364,6 +2477,10 @@ int CocosEmitter::exitClass(Node *n) {
         Template jsc_struct_prop_conversion_declare(getTemplate("jsc_struct_prop_conversion_declare"));
         jsc_struct_prop_conversion_declare.replace("$jsclassname", jsclassname)
             .pretty_print(_rootState->globals(HEADER_REGISTER_CLASSES));
+    }
+
+    if (moduleMacro) {
+        Printv(_rootState->globals(HEADER_REGISTER_CLASSES), "#endif // ", moduleMacro, "\n", NIL);
     }
 
     Delete(jsclassname);

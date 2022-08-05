@@ -505,3 +505,10 @@ parameters match which function
   SE_PRECONDITION2(ok, false, "$symname,$argnum,$descriptor");
   $1 = ($ltype) &temp;
 %}
+
+%typemap(out) cc::Float32Array %{
+    // %typemap(out) cc::Float32Array
+    ok &= nativevalue_to_se($1, s.rval(), s.thisObject() /*ctx*/);
+    SE_PRECONDITION2(ok, false, "$symname, Error processing arguments");
+    SE_HOLD_RETURN_VALUE($1, s.thisObject(), s.rval());
+%}
