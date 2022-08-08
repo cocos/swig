@@ -2096,13 +2096,13 @@ int CocosEmitter::initialize(Node *n) {
     String *outfile_h = Getattr(n, "outfile_h");
 
     /* Initialize I/O */
-    f_wrap_cpp = NewFile(outfile, "w", SWIG_output_files());
+    f_wrap_cpp = NewFile(outfile, "wb", SWIG_output_files());
     if (!f_wrap_cpp) {
         FileErrorDisplay(outfile);
         Exit(EXIT_FAILURE);
     }
 
-    f_wrap_h = NewFile(outfile_h, "w", SWIG_output_files());
+    f_wrap_h = NewFile(outfile_h, "wb", SWIG_output_files());
     if (!f_wrap_h) {
         FileErrorDisplay(outfile_h);
         Exit(EXIT_FAILURE);
