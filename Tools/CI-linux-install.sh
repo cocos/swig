@@ -11,9 +11,9 @@ else
 	$RETRY sudo apt-get -qq update
 fi
 
-$RETRY sudo apt-get -qq install libboost-dev libpcre3-dev
+$RETRY sudo apt-get -qq install libpcre2-dev cmake bison
 # testflags.py needs python
-$RETRY sudo apt-get install -qq python
+# $RETRY sudo apt-get install -qq python
 
 WITHLANG=$SWIGLANG
 
