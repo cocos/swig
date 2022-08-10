@@ -162,7 +162,7 @@ jobs:
     - name: Install dependencies
       run: |
         brew install pcre2
-        brew fetch --force --deps --bottle-tag=arm64_monterey pcre2  | grep "Downloaded to:" | awk '{ print $3 }' | xargs -n 1 tar -xzvf
+        brew fetch --force --deps --bottle-tag=arm64_big_sur pcre2  | grep "Downloaded to:" | awk '{ print $3 }' | xargs -n 1 tar -xzvf
     - name: Configure x86_64
       run: |
           mkdir -p build
