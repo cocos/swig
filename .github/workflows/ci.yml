@@ -190,7 +190,7 @@ jobs:
           echo "cjh: --->  %PATH%"
           set PCRE_ROOT=${{ github.workspace }}/pcre2-pcre2-10.39/pcre-install
           cd build
-          call build-win-ci.bat
+          cmd.exe  /c '.\build-win-ci.bat'
     - name: Upload Artifact
       uses: actions/upload-artifact@v3
       with: 
