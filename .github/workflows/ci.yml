@@ -162,13 +162,14 @@ jobs:
     - name: Install dependencies
       run: |
         brew install pcre2
-    - name: Configure
+        brew fetch --force --deps --bottle-tag=arm64_monterey pcre2  | grep "Downloaded to:" | awk '{ print $3 }' | xargs -n 1 tar -xzvf
+    - name: Configure x86_64
       run: |
           mkdir -p build
           cd build
           cmake .. -DCMAKE_INSTALL_PREFIX="./swig-mac" -DCMAKE_C_FLAGS="-DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="-DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=/usr/local/include -DPCRE2_LIBRARY=/usr/local/lib/libpcre2-8.a -DBISON_EXECUTABLE=/usr/bin/bison
 
-    - name: Build & Install
+    - name: Build & Install x86_64
       working-directory: build
       run: |
           set -x
@@ -176,6 +177,26 @@ jobs:
           SWIGJOBS=-j$cpu_count
           cmake --build . --config Release $SWIGJOBS --target install
           ./swig -version && ./swig -pcreversion
+    - name: Configure arm64
+      run: |
+          mkdir -p build_arm64
+          cd build_arm64
+          PCRE_ARM64_ROOT=$GITHUB_WORKSPACE/pcre2/10.40
+          cmake .. -DCMAKE_OSX_ARCHITECTURES=arm64 -DCMAKE_INSTALL_PREFIX="./swig-mac" -DCMAKE_C_FLAGS="-DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="-DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=$PCRE_ARM64_ROOT/include -DPCRE2_LIBRARY=$PCRE_ARM64_ROOT/lib/libpcre2-8.a -DBISON_EXECUTABLE=/usr/bin/bison
+
+    - name: Build & Install arm64
+      working-directory: build_arm64
+      run: |
+          set -x
+          cpu_count=$(sysctl -n hw.ncpu)
+          SWIGJOBS=-j$cpu_count
+          cmake --build . --config Release $SWIGJOBS
+    - name: Build Fat Library
+      run: |
+        mv build/swig-mac/bin/swig .
+        lipo -create ./swig ./build_arm64/swig -output ./build/swig-mac/bin/swig
+        lipo -info ./build/swig-mac/bin/swig
+
     # - name: Upload Artifact
     #   uses: actions/upload-artifact@v3
     #   with: 
