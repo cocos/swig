@@ -192,3 +192,26 @@ jobs:
       with: 
         name: swig-windows
         path: build/swig-windows
+
+  # build-mac:
+  #   name: "macOS"
+  #   runs-on: macos-latest
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v2
+  #     with:
+  #       submodules: recursive
+  #   - name: Configure
+  #     run: |
+  #         mkdir -p build
+  #         cd build
+  #         cmake .. -DCMAKE_INSTALL_PREFIX="./swig-mac" -DCMAKE_C_FLAGS="-DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="-DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=/usr/local/include -DPCRE2_LIBRARY=/usr/local/lib/libpcre2-8.a -DBISON_EXECUTABLE=/usr/bin/bison
+
+  #   - name: Build & Install
+  #     working-directory: build
+  #     run: |
+  #         set -x
+  #         cpu_count=$(sysctl -n hw.ncpu)
+  #         SWIGJOBS=-j$cpu_count
+  #         cmake --build . --config Release $SWIGJOBS --target install
+  #         ./swig -version && ./swig -pcreversion

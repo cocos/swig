@@ -1,5 +1,5 @@
 set DIR=%~dp0
-set REPO_ROOT=%DIR%..\..
+set REPO_ROOT=%DIR%..
 
 for %%i in ("%REPO_ROOT%") do SET REPO_ROOT=%%~fi
 
