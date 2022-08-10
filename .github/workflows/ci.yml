@@ -173,12 +173,16 @@ jobs:
     - name: Build pcre2
       run: |
           cd pcre2-pcre2-10.39
-          cmake . -G "Visual Studio 16 2019" -DPCRE2_STATIC_RUNTIME=ON -DCMAKE_INSTALL_PREFIX="%GITHUB_WORKSPACE%\pcre-install" && cmake --build . --config Release --target install
+          cmake . -G "Visual Studio 16 2019" -DPCRE2_STATIC_RUNTIME=ON -DCMAKE_INSTALL_PREFIX="pcre-install" && cmake --build . --config Release --target install
     - name: Download bison
       uses: suisei-cn/actions-download-file@v1.0.1
       with:
         url: http://downloads.sourceforge.net/gnuwin32/bison-2.4.1-bin.zip
         target: bison
+    - name: Unzip bison
+      run: |
+          cd bison
+          7z x bison-2.4.1-bin.zip
     - name: test3
       shell: bash
       run: |
@@ -188,9 +192,20 @@ jobs:
       uses: suisei-cn/actions-download-file@v1.0.1
       with:
         url: http://downloads.sourceforge.net/gnuwin32/bison-2.4.1-dep.zip
-        target: bison-deps
+        target: bison
+    - name: Unzip bison deps
+      run: |
+          cd bison
+          7z x bison-2.4.1-dep.zip
     - name: test3
       shell: bash
       run: |
-          cd bison-deps
+          cd bison
           ls -l
+          cd bin
+          ls -l
+    # - name: Build Swig
+    #   run: |
+    #       set PCRE_ROOT=pcre-install
+    #       cmake --version && cmake .. -G "Visual Studio 16 2019" -DCMAKE_INSTALL_PREFIX="swig-windows" -DCMAKE_C_FLAGS="/DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="/DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=%PCRE_ROOT%/include -DPCRE2_LIBRARY=%PCRE_ROOT%/lib/pcre2-8-static.lib -DBISON_EXECUTABLE=C:/bison/bin/bison.exe
+    #       cmake --build . --config Release --target install
