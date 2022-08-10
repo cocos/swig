@@ -72,7 +72,6 @@ jobs:
         file: build/swig-windows
         asset_name: swig-windows
         tag: ${{ github.ref }}
-        file_glob: true
   
   # build-windows:
   #   name: "Windows"
