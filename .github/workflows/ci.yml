@@ -208,6 +208,8 @@ jobs:
     - name: Build Swig
       run: |
           echo "$GITHUB_WORKSPACE/bison/bin" >> $GITHUB_PATH
+          echo "cjh: --->  $GITHUB_WORKSPACE/bison/bin"
           set PCRE_ROOT=pcre2-pcre2-10.39\pcre-install
-          cmake --version && cmake .. -G "Visual Studio 16 2019" -DCMAKE_INSTALL_PREFIX="swig-windows" -DCMAKE_C_FLAGS="/DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="/DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=%PCRE_ROOT%/include -DPCRE2_LIBRARY=%PCRE_ROOT%/lib/pcre2-8-static.lib -DBISON_EXECUTABLE=./bison/bin/bison.exe
+          cd build
+          cmake --version && cmake .. -G "Visual Studio 16 2019" -DCMAKE_INSTALL_PREFIX="swig-windows" -DCMAKE_C_FLAGS="/DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="/DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=%PCRE_ROOT%/include -DPCRE2_LIBRARY=%PCRE_ROOT%/lib/pcre2-8-static.lib -DBISON_EXECUTABLE="$GITHUB_WORKSPACE/bison/bin/bison.exe"
           cmake --build . --config Release --target install
