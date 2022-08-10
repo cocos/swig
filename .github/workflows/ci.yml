@@ -2,6 +2,8 @@ name: CI
 
 on:
   push:
+    branches:
+      - '**'
     tags-ignore:
       - '**'
     paths-ignore:
@@ -65,6 +67,12 @@ jobs:
     #   with: 
     #     name: swig-linux
     #     path: build/swig-linux
+
+    - name: Pack dist files
+      uses: vimtor/action-zip@v1
+        with:
+          files: build/swig-linux/
+          dest: swig-linux.zip
 
     - name: Upload to Release
       if: github.event_name == 'release'
