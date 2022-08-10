@@ -153,13 +153,14 @@ jobs:
       with:
         submodules: recursive
     - name: Download Dependencies
-      uses: engineerd/configurator@v0.0.8
+      uses: suisei-cn/actions-download-file@v1.0.1
       with:
-          name: "download libpcre2-8"
-          url: https://github.com/PhilipHazel/pcre2/archive/refs/tags/pcre2-10.39.zip
-          pathInArchive: "pcre2-pcre2-10.39"
+        name: "download libpcre2-8"
+        url: https://github.com/PhilipHazel/pcre2/archive/refs/tags/pcre2-10.39.zip
+        target: "pcre2-pcre2-10.39"
     - name: test
       shell: bash
       run: |
+          cd pcre2-pcre2-10.39
           ls -l
 
