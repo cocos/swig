@@ -50,10 +50,10 @@ jobs:
       with:
         submodules: recursive
 
-    - name: Install CCache
-      uses: hendrikmuhs/ccache-action@v1
-      with:
-        key: ${{ matrix.os || 'ubuntu-20.04' }}-${{ matrix.compiler || 'gcc' }}${{ matrix.GCC }}
+    # - name: Install CCache
+    #   uses: hendrikmuhs/ccache-action@v1
+    #   with:
+    #     key: ${{ matrix.os || 'ubuntu-20.04' }}-${{ matrix.compiler || 'gcc' }}${{ matrix.GCC }}
 
 # Uncomment to debug via ssh, see https://github.com/mxschmitt/action-tmate
 #    - name: Setup tmate session
@@ -127,7 +127,7 @@ jobs:
           if test -n "$SWIGLANG"; then CONFIGOPTS+=(--without-alllang --with-$WITHLANG); fi
           echo "${CONFIGOPTS[@]}"
 
-          mkdir build
+          mkdir -p build
           cd build
           cmake .. -DCMAKE_INSTALL_PREFIX="./install" -DCMAKE_C_FLAGS="-DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="-DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=/usr/include -DPCRE2_LIBRARY=/usr/lib/x86_64-linux-gnu/libpcre2-8.a -DBISON_EXECUTABLE=/usr/bin/bison
 
