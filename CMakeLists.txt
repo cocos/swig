@@ -140,7 +140,26 @@ list (APPEND CPARSE_SOURCES)
 file (GLOB PREPROCESSOR_SOURCES ${SWIG_SOURCE_DIR}/Preprocessor/*.c ${SWIG_SOURCE_DIR}/Preprocessor/*.h)
 file (GLOB CORE_SOURCES ${SWIG_SOURCE_DIR}/Swig/*.c ${SWIG_SOURCE_DIR}/Swig/*.h)
 file (GLOB DOXYGEN_SOURCES ${SWIG_SOURCE_DIR}/Doxygen/*.cxx ${SWIG_SOURCE_DIR}/Doxygen/*.h)
-file (GLOB MODULES_SOURCES ${SWIG_SOURCE_DIR}/Modules/*.cxx ${SWIG_SOURCE_DIR}/Modules/*.h)
+
+# We only needs cocos backend
+# file (GLOB MODULES_SOURCES ${SWIG_SOURCE_DIR}/Modules/*.cxx ${SWIG_SOURCE_DIR}/Modules/*.h)
+
+set (MODULES_SOURCES 
+  ${SWIG_SOURCE_DIR}/Modules/cocos.cxx
+  ${SWIG_SOURCE_DIR}/Modules/contract.cxx
+  ${SWIG_SOURCE_DIR}/Modules/emit.cxx
+  ${SWIG_SOURCE_DIR}/Modules/main.cxx
+  ${SWIG_SOURCE_DIR}/Modules/lang.cxx
+  ${SWIG_SOURCE_DIR}/Modules/overload.cxx
+  ${SWIG_SOURCE_DIR}/Modules/nested.cxx
+  ${SWIG_SOURCE_DIR}/Modules/typepass.cxx
+  ${SWIG_SOURCE_DIR}/Modules/interface.cxx
+  ${SWIG_SOURCE_DIR}/Modules/utils.cxx
+  ${SWIG_SOURCE_DIR}/Modules/xml.cxx
+  ${SWIG_SOURCE_DIR}/Modules/allocate.cxx
+  ${SWIG_SOURCE_DIR}/Modules/swigmain.cxx
+  ${SWIG_SOURCE_DIR}/Modules/swigmod.h
+)
 
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${DOH_SOURCES})
 source_group(TREE ${CMAKE_CURRENT_LIST_DIR} PREFIX "Source Files" FILES ${CPARSE_SOURCES})
