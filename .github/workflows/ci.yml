@@ -129,7 +129,7 @@ jobs:
 
           mkdir -p build
           cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX="./install" -DCMAKE_C_FLAGS="-DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="-DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=/usr/include -DPCRE2_LIBRARY=/usr/lib/x86_64-linux-gnu/libpcre2-8.a -DBISON_EXECUTABLE=/usr/bin/bison
+          cmake .. -DCMAKE_INSTALL_PREFIX="./swig-linux" -DCMAKE_C_FLAGS="-DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="-DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=/usr/include -DPCRE2_LIBRARY=/usr/lib/x86_64-linux-gnu/libpcre2-8.a -DBISON_EXECUTABLE=/usr/bin/bison
 
     - name: Build & Install
       working-directory: build
@@ -138,3 +138,9 @@ jobs:
           cmake --build . --config Release $SWIGJOBS --target install
           ./swig -version && ./swig -pcreversion
 
+    - name: Upload Artifact
+        uses: actions/upload-artifact@v2
+        with: 
+          name: swig-linux
+          path: swig-linux
+      
