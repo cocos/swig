@@ -56,89 +56,108 @@ jobs:
           cmake --build . --config Release $SWIGJOBS --target install
           ./swig -version && ./swig -pcreversion
 
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v3
-      with: 
-        name: swig-linux
-        path: build/swig-linux
+    # - name: Upload Artifact
+    #   uses: actions/upload-artifact@v3
+    #   with: 
+    #     name: swig-linux
+    #     path: build/swig-linux
+
+    - name: Upload to Release
+      if: github.event_name == 'release'
+      uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
+      with:
+        repo_token: ${{ secrets.GITHUB_TOKEN }}
+        file: build/swig-windows
+        asset_name: swig-windows
+        tag: ${{ github.ref }}
+        file_glob: true
   
-  build-windows:
-    name: "Windows"
-    runs-on: windows-2019
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-      with:
-        submodules: recursive
-    - name: Download pcre2
-      uses: suisei-cn/actions-download-file@v1.0.1
-      with:
-        url: https://github.com/PhilipHazel/pcre2/archive/refs/tags/pcre2-10.39.zip
-        target: pcre2
-    - name: Unzip
-      run: |
-          7z x pcre2/pcre2-10.39.zip
-    - name: Build pcre2
-      run: |
-          cd pcre2-pcre2-10.39
-          cmake . -G "Visual Studio 16 2019" -DPCRE2_STATIC_RUNTIME=ON -DCMAKE_INSTALL_PREFIX="pcre-install"
-          cmake --build . --config Release --target install
-    - name: Download bison
-      uses: suisei-cn/actions-download-file@v1.0.1
-      with:
-        url: http://downloads.sourceforge.net/gnuwin32/bison-2.4.1-bin.zip
-        target: bison
-    - name: Unzip bison
-      run: |
-          cd bison
-          7z x bison-2.4.1-bin.zip
-    - name: Download bison dependencies
-      uses: suisei-cn/actions-download-file@v1.0.1
-      with:
-        url: http://downloads.sourceforge.net/gnuwin32/bison-2.4.1-dep.zip
-        target: bison
-    - name: Unzip bison dependencies
-      run: |
-          cd bison
-          7z x bison-2.4.1-dep.zip
-    - name: Build Swig
-      run: |
-          cd build
-          cmd.exe  /c '.\build-win-ci.bat'
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v3
-      with: 
-        name: swig-windows
-        path: build/swig-windows
+  # build-windows:
+  #   name: "Windows"
+  #   runs-on: windows-2019
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v2
+  #     with:
+  #       submodules: recursive
+  #   - name: Download pcre2
+  #     uses: suisei-cn/actions-download-file@v1.0.1
+  #     with:
+  #       url: https://github.com/PhilipHazel/pcre2/archive/refs/tags/pcre2-10.39.zip
+  #       target: pcre2
+  #   - name: Unzip
+  #     run: |
+  #         7z x pcre2/pcre2-10.39.zip
+  #   - name: Build pcre2
+  #     run: |
+  #         cd pcre2-pcre2-10.39
+  #         cmake . -G "Visual Studio 16 2019" -DPCRE2_STATIC_RUNTIME=ON -DCMAKE_INSTALL_PREFIX="pcre-install"
+  #         cmake --build . --config Release --target install
+  #   - name: Download bison
+  #     uses: suisei-cn/actions-download-file@v1.0.1
+  #     with:
+  #       url: http://downloads.sourceforge.net/gnuwin32/bison-2.4.1-bin.zip
+  #       target: bison
+  #   - name: Unzip bison
+  #     run: |
+  #         cd bison
+  #         7z x bison-2.4.1-bin.zip
+  #   - name: Download bison dependencies
+  #     uses: suisei-cn/actions-download-file@v1.0.1
+  #     with:
+  #       url: http://downloads.sourceforge.net/gnuwin32/bison-2.4.1-dep.zip
+  #       target: bison
+  #   - name: Unzip bison dependencies
+  #     run: |
+  #         cd bison
+  #         7z x bison-2.4.1-dep.zip
+  #   - name: Build Swig
+  #     run: |
+  #         cd build
+  #         cmd.exe  /c '.\build-win-ci.bat'
+  #   - name: Upload Artifact
+  #     uses: actions/upload-artifact@v3
+  #     with: 
+  #       name: swig-windows
+  #       path: build/swig-windows
+  #   - name: Upload to Release
+  #       if: github.event_name == 'release'
+  #       uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
+  #       with:
+  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
+  #         file: build/swig-windows
+  #         asset_name: swig-windows
+  #         tag: ${{ github.ref }}
+  #         file_glob: true
 
-  build-mac:
-    name: "macOS"
-    runs-on: macos-latest
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v2
-      with:
-        submodules: recursive
-    - name: Install dependencies
-      run: |
-        brew install pcre2
-    - name: Configure
-      run: |
-          mkdir -p build
-          cd build
-          cmake .. -DCMAKE_INSTALL_PREFIX="./swig-mac" -DCMAKE_C_FLAGS="-DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="-DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=/usr/local/include -DPCRE2_LIBRARY=/usr/local/lib/libpcre2-8.a -DBISON_EXECUTABLE=/usr/bin/bison
+  # build-mac:
+  #   name: "macOS"
+  #   runs-on: macos-latest
+  #   steps:
+  #   - name: Checkout
+  #     uses: actions/checkout@v2
+  #     with:
+  #       submodules: recursive
+  #   - name: Install dependencies
+  #     run: |
+  #       brew install pcre2
+  #   - name: Configure
+  #     run: |
+  #         mkdir -p build
+  #         cd build
+  #         cmake .. -DCMAKE_INSTALL_PREFIX="./swig-mac" -DCMAKE_C_FLAGS="-DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="-DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=/usr/local/include -DPCRE2_LIBRARY=/usr/local/lib/libpcre2-8.a -DBISON_EXECUTABLE=/usr/bin/bison
 
-    - name: Build & Install
-      working-directory: build
-      run: |
-          set -x
-          cpu_count=$(sysctl -n hw.ncpu)
-          SWIGJOBS=-j$cpu_count
-          cmake --build . --config Release $SWIGJOBS --target install
-          ./swig -version && ./swig -pcreversion
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v3
-      with: 
-        name: swig-mac
-        path: build/swig-mac
+  #   - name: Build & Install
+  #     working-directory: build
+  #     run: |
+  #         set -x
+  #         cpu_count=$(sysctl -n hw.ncpu)
+  #         SWIGJOBS=-j$cpu_count
+  #         cmake --build . --config Release $SWIGJOBS --target install
+  #         ./swig -version && ./swig -pcreversion
+  #   - name: Upload Artifact
+  #     uses: actions/upload-artifact@v3
+  #     with: 
+  #       name: swig-mac
+  #       path: build/swig-mac
 
