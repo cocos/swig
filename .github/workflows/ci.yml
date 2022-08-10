@@ -14,135 +14,135 @@ on:
       - 'appveyor.yml'
 
 jobs:
-#   build-linux:
+  build-linux:
 
-#     # When continue-on-error is true for an individual build, that build can fail (it'll show red),
-#     # but it won't fail the overall build
-#     continue-on-error: ${{ matrix.continue-on-error || false }}
+    # When continue-on-error is true for an individual build, that build can fail (it'll show red),
+    # but it won't fail the overall build
+    continue-on-error: ${{ matrix.continue-on-error || false }}
 
-#     runs-on: ${{ matrix.os || 'ubuntu-20.04' }}
+    runs-on: ${{ matrix.os || 'ubuntu-20.04' }}
 
-#     # By default, the name of the build is the language used and SWIG options, but matrix entries
-#     # can define the additional "desc" field with any additional information to include in the name.
-#     name: ${{ matrix.SWIGLANG || 'none' }}${{ matrix.PY2 }} ${{ matrix.ENGINE}} ${{ matrix.VER }} ${{ matrix.SWIG_FEATURES }} ${{ (matrix.compiler || 'gcc') }}${{ matrix.GCC }} ${{ matrix.CPPSTD }} ${{ matrix.CSTD }} ${{ matrix.desc }} ${{ matrix.continue-on-error && '(can fail)' }}
+    # By default, the name of the build is the language used and SWIG options, but matrix entries
+    # can define the additional "desc" field with any additional information to include in the name.
+    name: ${{ matrix.SWIGLANG || 'none' }}${{ matrix.PY2 }} ${{ matrix.ENGINE}} ${{ matrix.VER }} ${{ matrix.SWIG_FEATURES }} ${{ (matrix.compiler || 'gcc') }}${{ matrix.GCC }} ${{ matrix.CPPSTD }} ${{ matrix.CSTD }} ${{ matrix.desc }} ${{ matrix.continue-on-error && '(can fail)' }}
 
-#     strategy:
-#       matrix:
-#         include:
-#         - SWIGLANG: javascript
-#           ENGINE: cocos
-#           CPPSTD: c++17
-#       # Run all of them, as opposed to aborting when one fails
-#       fail-fast: false
+    strategy:
+      matrix:
+        include:
+        - SWIGLANG: javascript
+          ENGINE: cocos
+          CPPSTD: c++17
+      # Run all of them, as opposed to aborting when one fails
+      fail-fast: false
 
-#     env:
-#       SWIGLANG: ${{ matrix.SWIGLANG }}
-#       ENGINE: ${{ matrix.ENGINE }}
-#       SWIG_FEATURES: ${{ matrix.SWIG_FEATURES }}
-#       GCC: ${{ matrix.GCC }}
-#       CSTD: ${{ matrix.CSTD }}
-#       CPPSTD: ${{ matrix.CPPSTD }}
-#       CPPFLAGS: ${{ matrix.CPPFLAGS }}
+    env:
+      SWIGLANG: ${{ matrix.SWIGLANG }}
+      ENGINE: ${{ matrix.ENGINE }}
+      SWIG_FEATURES: ${{ matrix.SWIG_FEATURES }}
+      GCC: ${{ matrix.GCC }}
+      CSTD: ${{ matrix.CSTD }}
+      CPPSTD: ${{ matrix.CPPSTD }}
+      CPPFLAGS: ${{ matrix.CPPFLAGS }}
 
-#     steps:
-#     - name: Checkout
-#       uses: actions/checkout@v2
-#       with:
-#         submodules: recursive
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
+      with:
+        submodules: recursive
 
-#     # - name: Install CCache
-#     #   uses: hendrikmuhs/ccache-action@v1
-#     #   with:
-#     #     key: ${{ matrix.os || 'ubuntu-20.04' }}-${{ matrix.compiler || 'gcc' }}${{ matrix.GCC }}
+    # - name: Install CCache
+    #   uses: hendrikmuhs/ccache-action@v1
+    #   with:
+    #     key: ${{ matrix.os || 'ubuntu-20.04' }}-${{ matrix.compiler || 'gcc' }}${{ matrix.GCC }}
 
-# # Uncomment to debug via ssh, see https://github.com/mxschmitt/action-tmate
-# #    - name: Setup tmate session
-# #      uses: mxschmitt/action-tmate@v3
+# Uncomment to debug via ssh, see https://github.com/mxschmitt/action-tmate
+#    - name: Setup tmate session
+#      uses: mxschmitt/action-tmate@v3
 
-#     - name: Install Dependencies
-#       run: |
-#           set -x
-#           export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
-#           echo PATH="$PATH" >> $GITHUB_ENV
+    - name: Install Dependencies
+      run: |
+          set -x
+          export PATH="/usr/lib/ccache:/usr/local/opt/ccache/libexec:$PATH"
+          echo PATH="$PATH" >> $GITHUB_ENV
 
-#           source $GITHUB_WORKSPACE/Tools/GHA-linux-install.sh
-#           echo WITHLANG="$WITHLANG" >> $GITHUB_ENV
+          source $GITHUB_WORKSPACE/Tools/GHA-linux-install.sh
+          echo WITHLANG="$WITHLANG" >> $GITHUB_ENV
 
-#           case $(uname) in
-#               Linux)
-#                   cpu_count=$(nproc)
-#                   ;;
+          case $(uname) in
+              Linux)
+                  cpu_count=$(nproc)
+                  ;;
 
-#               Darwin)
-#                   cpu_count=$(sysctl -n hw.ncpu)
-#                   ;;
+              Darwin)
+                  cpu_count=$(sysctl -n hw.ncpu)
+                  ;;
 
-#               *)
-#                   cpu_count=1
-#                   ;;
-#           esac
+              *)
+                  cpu_count=1
+                  ;;
+          esac
 
-#           if [[ $cpu_count != 1 ]]; then
-#             echo SWIGJOBS=-j$cpu_count >> $GITHUB_ENV
-#           fi
+          if [[ $cpu_count != 1 ]]; then
+            echo SWIGJOBS=-j$cpu_count >> $GITHUB_ENV
+          fi
 
-#           if test '${{ matrix.compiler }}' = 'clang'; then
-#             CC="clang"
-#             CXX="clang++"
+          if test '${{ matrix.compiler }}' = 'clang'; then
+            CC="clang"
+            CXX="clang++"
 
-#             CFLAGS="$CFLAGS -fPIE"
-#             CXXFLAGS="$CXXFLAGS -fPIE"
-#           elif test -n "$GCC"; then
-#             CC="gcc-$GCC"
-#             CXX="g++-$GCC"
-#           else
-#             CC="gcc"
-#             CXX="g++"
-#           fi
+            CFLAGS="$CFLAGS -fPIE"
+            CXXFLAGS="$CXXFLAGS -fPIE"
+          elif test -n "$GCC"; then
+            CC="gcc-$GCC"
+            CXX="g++-$GCC"
+          else
+            CC="gcc"
+            CXX="g++"
+          fi
 
-#           export CC CXX
+          export CC CXX
 
-#           echo CC="$CC" >> $GITHUB_ENV
-#           echo CXX="$CXX" >> $GITHUB_ENV
+          echo CC="$CC" >> $GITHUB_ENV
+          echo CXX="$CXX" >> $GITHUB_ENV
 
-#           ls -la $(which $CC) $(which $CXX)
-#           $CC --version
-#           $CXX --version
+          ls -la $(which $CC) $(which $CXX)
+          $CC --version
+          $CXX --version
 
-#     - name: Configure
-#       run: |
-#           source $GITHUB_WORKSPACE/Tools/CI-linux-environment.sh
-#           set -x
+    - name: Configure
+      run: |
+          source $GITHUB_WORKSPACE/Tools/CI-linux-environment.sh
+          set -x
 
-#           if [[ -z "$CSTD" ]]; then
-#             case "$CPPSTD" in
-#               c++11) export CSTD=c11 ;;
-#               c++14) export CSTD=c11 ;;
-#               c++17) export CSTD=c17 ;;
-#             esac
-#             echo CSTD="$CSTD" >> $GITHUB_ENV
-#           fi
-#           if test -n "$CPPSTD"; then CONFIGOPTS+=(--enable-cpp11-testing "CXXFLAGS=-std=$CPPSTD $CXXFLAGS"); fi
-#           if test -n "$CSTD"; then CONFIGOPTS+=("CFLAGS=-std=$CSTD $CFLAGS"); fi
-#           if test -n "$SWIGLANG"; then CONFIGOPTS+=(--without-alllang --with-$WITHLANG); fi
-#           echo "${CONFIGOPTS[@]}"
+          if [[ -z "$CSTD" ]]; then
+            case "$CPPSTD" in
+              c++11) export CSTD=c11 ;;
+              c++14) export CSTD=c11 ;;
+              c++17) export CSTD=c17 ;;
+            esac
+            echo CSTD="$CSTD" >> $GITHUB_ENV
+          fi
+          if test -n "$CPPSTD"; then CONFIGOPTS+=(--enable-cpp11-testing "CXXFLAGS=-std=$CPPSTD $CXXFLAGS"); fi
+          if test -n "$CSTD"; then CONFIGOPTS+=("CFLAGS=-std=$CSTD $CFLAGS"); fi
+          if test -n "$SWIGLANG"; then CONFIGOPTS+=(--without-alllang --with-$WITHLANG); fi
+          echo "${CONFIGOPTS[@]}"
 
-#           mkdir -p build
-#           cd build
-#           cmake .. -DCMAKE_INSTALL_PREFIX="./swig-linux" -DCMAKE_C_FLAGS="-DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="-DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=/usr/include -DPCRE2_LIBRARY=/usr/lib/x86_64-linux-gnu/libpcre2-8.a -DBISON_EXECUTABLE=/usr/bin/bison
+          mkdir -p build
+          cd build
+          cmake .. -DCMAKE_INSTALL_PREFIX="./swig-linux" -DCMAKE_C_FLAGS="-DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="-DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=/usr/include -DPCRE2_LIBRARY=/usr/lib/x86_64-linux-gnu/libpcre2-8.a -DBISON_EXECUTABLE=/usr/bin/bison
 
-#     - name: Build & Install
-#       working-directory: build
-#       run: |
-#           set -x
-#           cmake --build . --config Release $SWIGJOBS --target install
-#           ./swig -version && ./swig -pcreversion
+    - name: Build & Install
+      working-directory: build
+      run: |
+          set -x
+          cmake --build . --config Release $SWIGJOBS --target install
+          ./swig -version && ./swig -pcreversion
 
-#     - name: Upload Artifact
-#       uses: actions/upload-artifact@v3
-#       with: 
-#         name: swig-linux
-#         path: build/swig-linux
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with: 
+        name: swig-linux
+        path: build/swig-linux
   
   build-windows:
     name: "Windows"
@@ -218,3 +218,9 @@ jobs:
           SWIGJOBS=-j$cpu_count
           cmake --build . --config Release $SWIGJOBS --target install
           ./swig -version && ./swig -pcreversion
+    - name: Upload Artifact
+      uses: actions/upload-artifact@v3
+      with: 
+        name: swig-mac
+        path: build/swig-mac
+
