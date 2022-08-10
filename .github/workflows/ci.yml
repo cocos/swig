@@ -70,9 +70,9 @@ jobs:
 
     - name: Pack dist files
       uses: vimtor/action-zip@v1
-        with:
-          files: build/swig-linux/
-          dest: swig-linux.zip
+      with:
+        files: build/swig-linux/
+        dest: swig-linux.zip
 
     - name: Upload to Release
       if: github.event_name == 'release'
