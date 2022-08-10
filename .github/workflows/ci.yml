@@ -139,8 +139,8 @@ jobs:
           ./swig -version && ./swig -pcreversion
 
     - name: Upload Artifact
-        uses: actions/upload-artifact@v2
-        with: 
-          name: swig-linux
-          path: swig-linux
+      uses: actions/upload-artifact@v3
+      with: 
+        name: swig-linux
+        path: swig-linux
       
