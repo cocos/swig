@@ -185,10 +185,6 @@ jobs:
     #       7z x bison-2.4.1-dep.zip
     - name: Build Swig
       run: |
-          set PATH=${{ github.workspace }}/bison/bin;$PATH
-          set BISON_EXECUTABLE=${{ github.workspace }}/bison/bin/bison.exe
-          echo "cjh: --->  %PATH%"
-          set PCRE_ROOT=${{ github.workspace }}/pcre2-pcre2-10.39/pcre-install
           cd build
           cmd.exe  /c '.\build-win-ci.bat'
     - name: Upload Artifact
