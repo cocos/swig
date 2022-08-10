@@ -1,0 +1,2 @@
+cmake --version && cmake .. -G "Visual Studio 16 2019" -DCMAKE_INSTALL_PREFIX="%CD:\=/%/swig-windows" -DCMAKE_C_FLAGS="/DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="/DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=%PCRE_ROOT%/include -DPCRE2_LIBRARY=%PCRE_ROOT%/lib/pcre2-8-static.lib -DBISON_EXECUTABLE=%BISON_EXE%
+cmake --build . --config Release --target install

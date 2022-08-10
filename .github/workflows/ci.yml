@@ -184,15 +184,13 @@ jobs:
           cd bison
           7z x bison-2.4.1-dep.zip
     - name: Build Swig
-      shell: bash
       run: |
-          set -x
-          export PATH=:${GITHUB_WORKSPACE//\\//}/bison/bin:$PATH
-          echo "cjh: --->  $PATH"
-          PCRE_ROOT=${GITHUB_WORKSPACE//\\//}/pcre2-pcre2-10.39/pcre-install
+          set PATH=${{ github.workspace }}/bison/bin;$PATH
+          set BISON_EXECUTABLE=${{ github.workspace }}/bison/bin/bison.exe
+          echo "cjh: --->  %PATH%"
+          set PCRE_ROOT=${{ github.workspace }}/pcre2-pcre2-10.39/pcre-install
           cd build
-          cmake --version && cmake .. -G "Visual Studio 16 2019" -DCMAKE_INSTALL_PREFIX="${GITHUB_WORKSPACE//\\//}/swig-windows" -DCMAKE_C_FLAGS="\/DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="\/DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR="$PCRE_ROOT/include" -DPCRE2_LIBRARY="$PCRE_ROOT/lib/pcre2-8-static.lib" -DBISON_EXECUTABLE="${GITHUB_WORKSPACE//\\//}/bison/bin/bison.exe"
-          cmake --build . --config Release --target install
+          build-win-ci.bat
     - name: Upload Artifact
       uses: actions/upload-artifact@v3
       with: 
