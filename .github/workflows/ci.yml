@@ -152,7 +152,7 @@ jobs:
       uses: actions/checkout@v2
       with:
         submodules: recursive
-    - name: Download Dependencies
+    - name: Download pcre2
       uses: suisei-cn/actions-download-file@v1.0.1
       with:
         url: https://github.com/PhilipHazel/pcre2/archive/refs/tags/pcre2-10.39.zip
@@ -172,7 +172,7 @@ jobs:
           ls -l
     - name: Build pcre2
       run: |
-          set PCRE_ROOT=C:/pcre
+          set PCRE_ROOT=%GITHUB_WORKSPACE%/pcre-install
           cd pcre2-pcre2-10.39
           cmake . -G "Visual Studio 16 2019" -DCMAKE_INSTALL_PREFIX="%PCRE_ROOT:\=/%" && cmake --build . --config Release --target install
 
