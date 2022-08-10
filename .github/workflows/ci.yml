@@ -193,7 +193,7 @@ jobs:
       with:
         url: http://downloads.sourceforge.net/gnuwin32/bison-2.4.1-dep.zip
         target: bison
-    - name: Unzip bison deps
+    - name: Unzip bison dependencies
       run: |
           cd bison
           7z x bison-2.4.1-dep.zip
@@ -204,8 +204,10 @@ jobs:
           ls -l
           cd bin
           ls -l
-    # - name: Build Swig
-    #   run: |
-    #       set PCRE_ROOT=pcre-install
-    #       cmake --version && cmake .. -G "Visual Studio 16 2019" -DCMAKE_INSTALL_PREFIX="swig-windows" -DCMAKE_C_FLAGS="/DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="/DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=%PCRE_ROOT%/include -DPCRE2_LIBRARY=%PCRE_ROOT%/lib/pcre2-8-static.lib -DBISON_EXECUTABLE=C:/bison/bin/bison.exe
-    #       cmake --build . --config Release --target install
+
+    - name: Build Swig
+      run: |
+          echo "$GITHUB_WORKSPACE/bison/bin" >> $GITHUB_PATH
+          set PCRE_ROOT=pcre2-pcre2-10.39\pcre-install
+          cmake --version && cmake .. -G "Visual Studio 16 2019" -DCMAKE_INSTALL_PREFIX="swig-windows" -DCMAKE_C_FLAGS="/DPCRE2_STATIC" -DCMAKE_CXX_FLAGS="/DPCRE2_STATIC" -DPCRE2_INCLUDE_DIR=%PCRE_ROOT%/include -DPCRE2_LIBRARY=%PCRE_ROOT%/lib/pcre2-8-static.lib -DBISON_EXECUTABLE=./bison/bin/bison.exe
+          cmake --build . --config Release --target install
