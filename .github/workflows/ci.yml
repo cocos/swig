@@ -171,4 +171,8 @@ jobs:
       run: |
           cd pcre2-pcre2-10.39
           ls -l
+    - name: Build pcre2
+      run: |
+          set PCRE_ROOT=C:/pcre
+          cmake . -G "Visual Studio 16 2019" -DCMAKE_INSTALL_PREFIX="%PCRE_ROOT:\=/%" && cmake --build . --config Release --target install
 
