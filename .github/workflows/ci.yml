@@ -157,6 +157,7 @@ jobs:
       with:
           name: "download libpcre2-8"
           url: https://github.com/PhilipHazel/pcre2/archive/refs/tags/pcre2-10.39.zip
+          pathInArchive: "pcre2-pcre2-10.39"
     - name: test
       shell: bash
       run: |
