@@ -12,6 +12,8 @@ on:
       - 'CHANGES*'
       - 'Doc/**'
       - 'appveyor.yml'
+  release:
+    types: [published]
 
 jobs:
   build-linux:
@@ -115,11 +117,11 @@ jobs:
   #     run: |
   #         cd build
   #         cmd.exe  /c '.\build-win-ci.bat'
-  #   - name: Upload Artifact
-  #     uses: actions/upload-artifact@v3
-  #     with: 
-  #       name: swig-windows
-  #       path: build/swig-windows
+  #   # - name: Upload Artifact
+  #   #   uses: actions/upload-artifact@v3
+  #   #   with: 
+  #   #     name: swig-windows
+  #   #     path: build/swig-windows
   #   - name: Upload to Release
   #       if: github.event_name == 'release'
   #       uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
@@ -155,9 +157,18 @@ jobs:
   #         SWIGJOBS=-j$cpu_count
   #         cmake --build . --config Release $SWIGJOBS --target install
   #         ./swig -version && ./swig -pcreversion
-  #   - name: Upload Artifact
-  #     uses: actions/upload-artifact@v3
-  #     with: 
-  #       name: swig-mac
-  #       path: build/swig-mac
+  #   # - name: Upload Artifact
+  #   #   uses: actions/upload-artifact@v3
+  #   #   with: 
+  #   #     name: swig-mac
+  #   #     path: build/swig-mac
+  #   - name: Upload to Release
+  #       if: github.event_name == 'release'
+  #       uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
+  #       with:
+  #         repo_token: ${{ secrets.GITHUB_TOKEN }}
+  #         file: build/swig-mac
+  #         asset_name: swig-mac
+  #         tag: ${{ github.ref }}
+  #         file_glob: true
 
