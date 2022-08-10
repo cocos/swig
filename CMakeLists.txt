@@ -1,8 +1,10 @@
-cmake_minimum_required (VERSION 3.2)
+cmake_minimum_required (VERSION 3.15)
 
 if (NOT DEFINED CMAKE_BUILD_TYPE)
   set (CMAKE_BUILD_TYPE Release CACHE STRING "Build type")
 endif ()
+
+cmake_policy (SET CMP0091 NEW)
 
 project (swig)
 
@@ -160,6 +162,11 @@ add_executable (swig
   ${PROJECT_BINARY_DIR}/Source/CParse/parser.c
   ${PROJECT_BINARY_DIR}/Source/CParse/parser.h
 )
+
+if (MSVC)
+set_property(TARGET swig PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+endif ()
+
 if (PCRE2_FOUND)
   target_link_libraries (swig ${PCRE2_LIBRARIES})
 endif ()
