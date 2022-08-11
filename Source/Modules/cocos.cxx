@@ -669,18 +669,20 @@ int COCOS::staticmembervariableHandler(Node *n) {
  * --------------------------------------------------------------------- */
 
 int COCOS::constantWrapper(Node *n) {
-    emitter->switchNamespace(n);
-
-    // Note: callbacks trigger this wrapper handler
-    // TODO: handle callback declarations
-    if (Equal(Getattr(n, "kind"), "function")) {
-        return SWIG_OK;
-    }
-    // TODO: the emitter for constants must be implemented in a cleaner way
-    // currently we treat it like a read-only variable
-    // however, there is a remaining bug with function pointer constants
-    // which could be fixed with a cleaner approach
-    emitter->emitConstant(n);
+//TODO(cjh): Don't bind constant to keep the same logic as bindings-generator, need add a feature for this
+//
+//    emitter->switchNamespace(n);
+//
+//    // Note: callbacks trigger this wrapper handler
+//    // TODO: handle callback declarations
+//    if (Equal(Getattr(n, "kind"), "function")) {
+//        return SWIG_OK;
+//    }
+//    // TODO: the emitter for constants must be implemented in a cleaner way
+//    // currently we treat it like a read-only variable
+//    // however, there is a remaining bug with function pointer constants
+//    // which could be fixed with a cleaner approach
+//    emitter->emitConstant(n);
 
     return SWIG_OK;
 }
@@ -2218,10 +2220,11 @@ int CocosEmitter::exitFunction(Node *n) {
             t_function.pretty_print(state.clazz(MEMBER_FUNCTIONS));
         }
     } else {
-        Template t_function = getTemplate("jsc_global_function_declaration");
-        t_function.replace("$jsname", jsname.c_str())
-            .replace("$jswrapper", state.function(WRAPPER_NAME));
-        t_function.pretty_print(Getattr(current_namespace, "functions"));
+        //TODO(cjh): Add feature to control this, disabled by default
+//        Template t_function = getTemplate("jsc_global_function_declaration");
+//        t_function.replace("$jsname", jsname.c_str())
+//            .replace("$jswrapper", state.function(WRAPPER_NAME));
+//        t_function.pretty_print(Getattr(current_namespace, "functions"));
     }
 
     return SWIG_OK;
@@ -2274,12 +2277,12 @@ int CocosEmitter::exitVariable(Node *n) {
             t_variable.pretty_print(state.clazz(MEMBER_VARIABLES));
         }
     } else {
-        Template t_variable(getTemplate("jsc_global_variable_declaration"));
-        t_variable.replace("$jsname", jsname.c_str())
-            .replace("$jsgetter", state.variable(GETTER))
-            .replace("$jssetter", state.variable(SETTER));
-
-        t_variable.pretty_print(Getattr(current_namespace, "values"));
+//TODO:(cjh)        Template t_variable(getTemplate("jsc_global_variable_declaration"));
+//        t_variable.replace("$jsname", jsname.c_str())
+//            .replace("$jsgetter", state.variable(GETTER))
+//            .replace("$jssetter", state.variable(SETTER));
+//
+//        t_variable.pretty_print(Getattr(current_namespace, "values"));
     }
 
     //cjh added
