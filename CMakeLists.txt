@@ -8,6 +8,10 @@ cmake_policy (SET CMP0091 NEW)
 
 project (swig)
 
+if(UNIX AND NOT APPLE)
+    set(LINUX TRUE)
+endif()
+
 # set c++ standard
 set(CMAKE_C_STANDARD 99)
 set(CMAKE_C_STANDARD_REQUIRED ON)
@@ -187,9 +191,11 @@ set_property(TARGET swig PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:
 endif ()
 
 if (PCRE2_FOUND)
-  target_link_libraries (swig ${PCRE2_LIBRARIES} -static)
-else ()
-  target_link_libraries (swig -static)
+  target_link_libraries (swig ${PCRE2_LIBRARIES})
+endif ()
+
+if (LINUX)
+  target_link_libraries (swig pthread -static)
 endif ()
 
 install (TARGETS swig DESTINATION bin)
