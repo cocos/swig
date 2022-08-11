@@ -1508,7 +1508,7 @@ int JSEmitter::emitSetter(Node *n, bool is_member, bool is_static) {
     ParmList *value = nullptr;
     if (paramCount > 1) {
         value = nextSibling(params);
-        Swig_print(Getattr(value, "type"));
+//cjh        Swig_print(Getattr(value, "type"));
     }
 
     if (!isextendmember && value != nullptr) {
@@ -1594,7 +1594,7 @@ int JSEmitter::emitConstant(Node *n) {
     Clear(state.variable(GETTER));
     Printf(state.variable(GETTER), "_SE(%s)", wname);
 
-    Swig_print(state.variable(GETTER), -1); //cjh added
+//    Swig_print(state.variable(GETTER), -1); //cjh added
 
     // TODO: why do we need this?
     Setattr(n, "wrap:name", wname);
@@ -2255,8 +2255,7 @@ int CocosEmitter::exitVariable(Node *n) {
     std::string jsname = fixCppKeyword(Char(state.variable(NAME)));
 
     if (GetFlag(n, "ismember")) {
-        Swig_print(NewString("----"));
-        Swig_print(state.variable(GETTER), -1); //cjh added
+//        Swig_print(state.variable(GETTER), -1); //cjh added
 
         if (GetFlag(state.variable(), IS_STATIC) || Equal(Getattr(n, "nodeType"), "enumitem")) {
             Template t_static_variable(getTemplate("jsc_static_variable_declaration"));
@@ -2409,7 +2408,7 @@ int CocosEmitter::exitClass(Node *n) {
     }
 
     std::string static_variables = Char(state.clazz(MEMBER_VARIABLES));
-    printf("cjh static_variables: %s\n", static_variables.c_str());
+//    printf("cjh static_variables: %s\n", static_variables.c_str());
 
     /* adds a class template statement to initializer function */
     Template t_classtemplate(getTemplate("jsc_class_definition"));

@@ -498,8 +498,6 @@ Hash *Preprocessor_define(const_String_or_char_ptr _str, int swigmacro) {
     }
   }
 
-    printf("cjh before replace: macrovalue: %s\n", Char(macrovalue));
-
   /* Get rid of whitespace surrounding # */
   /*  Replace(macrovalue,"#","\001",DOH_REPLACE_NOQUOTE); */
   while (strstr(Char(macrovalue), "\001 ")) {
@@ -514,8 +512,6 @@ Hash *Preprocessor_define(const_String_or_char_ptr _str, int swigmacro) {
   Replace(macrovalue, "\001@", "\004", DOH_REPLACE_ANY);
   /* Replace '##@' with a special token */
   Replace(macrovalue, "\002@", "\005", DOH_REPLACE_ANY);
-
-    printf("---- cjh after replace:  macrovalue: %s\n", Char(macrovalue));
 
   /* Go create the macro */
   macro = NewHash();
