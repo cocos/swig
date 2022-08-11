@@ -60,6 +60,9 @@ jobs:
       run: |
           set -x
           cmake --build . --config Release $SWIGJOBS --target install
+          cd swig-linux/bin
+          strip ./swig
+          file ./swig
           ./swig -version && ./swig -pcreversion
 
     # - name: Upload Artifact
