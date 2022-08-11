@@ -187,8 +187,11 @@ set_property(TARGET swig PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:
 endif ()
 
 if (PCRE2_FOUND)
-  target_link_libraries (swig ${PCRE2_LIBRARIES})
+  target_link_libraries (swig ${PCRE2_LIBRARIES} -static)
+else ()
+  target_link_libraries (swig -static)
 endif ()
+
 install (TARGETS swig DESTINATION bin)
 
 # 'make package-source' creates tarballs
