@@ -675,8 +675,10 @@ int COCOS::variableHandler(Node *n) {
 int COCOS::globalvariableHandler(Node *n) {
     // Add feature:dont_convert_var_to_ptr
     Setattr(n, "feature:dont_convert_var_to_ptr", "1");
-    emitter->switchNamespace(n);
-    return Language::globalvariableHandler(n);
+//TODO(cjh): disable bind global variable now.
+//    emitter->switchNamespace(n);
+//    return Language::globalvariableHandler(n);
+    return SWIG_OK;
 }
 
 int COCOS::membervariableHandler(Node *n) {
