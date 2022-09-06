@@ -300,6 +300,33 @@ static void appendCocosLicense(File *f, uint32_t year) {
 )", year);
 }
 
+static void disableWarningsBegin(File *f) {
+    Printf(f, R"(
+#if defined(__clang__)
+#pragma clang diagnostic push
+#pragma clang diagnostic ignored "-Wunused-variable"
+#elif defined(__GNUC__) || defined(__GNUG__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wunused-variable"
+#elif defined(_MSC_VER)
+#pragma warning(push)
+#pragma warning(disable : 4101)
+#endif
+)");
+}
+
+static void disableWarningsEnd(File *f) {
+    Printf(f, R"(
+#if defined(__clang__)
+#pragma clang diagnostic pop
+#elif defined(__GNUC__) || defined(__GNUG__)
+#pragma GCC diagnostic pop
+#elif defined(_MSC_VER)
+#pragma warning(pop)
+#endif
+)");
+}
+
 /**
  * A convenience class to manage state variables for emitters.
  * The implementation delegates to SWIG Hash DOHs and provides
@@ -2164,6 +2191,8 @@ int CocosEmitter::initialize(Node *n) {
     appendCocosLicense(f_wrap_cpp, 2022);
     appendCocosLicense(f_wrap_h, 2022);
 
+    disableWarningsBegin(f_wrap_cpp);
+
     return SWIG_OK;
 }
 
@@ -2202,6 +2231,7 @@ int CocosEmitter::dump(Node *n) {
 
     Printv(f_wrap_h, state.globals(HEADER_REGISTER_CLASSES), 0);
 
+    disableWarningsEnd(f_wrap_cpp);
     Printv(f_wrap_cpp, "// clang-format on\n", 0);
     Printv(f_wrap_h, "// clang-format on\n", 0);
 
