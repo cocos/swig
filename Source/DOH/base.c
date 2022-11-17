@@ -147,7 +147,7 @@ int DohHashval(const DOH *obj) {
   /*  if (DohCheck(b)) */
   {
     objinfo = b->type;
-    if (objinfo->doh_hashval) {
+    if (objinfo && objinfo->doh_hashval) {
       return (objinfo->doh_hashval) (b);
     }
   }
