@@ -78,7 +78,8 @@ jobs:
       uses: thedoctor0/zip-release@main
       with:
         type: 'zip'
-        path: 'build/swig-linux'
+        directory: 'build/swig-linux'
+        path: '.'
         filename: 'swig-linux.zip'
         exclusions: 'share/swig/4.1.0/csharp share/swig/4.1.0/d share/swig/4.1.0/go share/swig/4.1.0/guile share/swig/4.1.0/java share/swig/4.1.0/javascript/jsc share/swig/4.1.0/javascript/v8 share/swig/4.1.0/lua share/swig/4.1.0/mzscheme share/swig/4.1.0/ocaml share/swig/4.1.0/octave share/swig/4.1.0/perl5 share/swig/4.1.0/php share/swig/4.1.0/python share/swig/4.1.0/r share/swig/4.1.0/ruby share/swig/4.1.0/scilab share/swig/4.1.0/std share/swig/4.1.0/tcl share/swig/4.1.0/typemaps share/swig/4.1.0/xml'
 
@@ -87,7 +88,7 @@ jobs:
       uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: swig-linux.zip
+        file: build/swig-linux/swig-linux.zip
         asset_name: swig-linux.zip
         tag: ${{ github.ref }}
   
@@ -147,7 +148,8 @@ jobs:
       uses: thedoctor0/zip-release@main
       with:
         type: 'zip'
-        path: 'build/swig-windows'
+        directory: 'build/swig-windows'
+        path: '.'
         filename: 'swig-windows.zip'
         exclusions: 'share/swig/4.1.0/csharp share/swig/4.1.0/d share/swig/4.1.0/go share/swig/4.1.0/guile share/swig/4.1.0/java share/swig/4.1.0/javascript/jsc share/swig/4.1.0/javascript/v8 share/swig/4.1.0/lua share/swig/4.1.0/mzscheme share/swig/4.1.0/ocaml share/swig/4.1.0/octave share/swig/4.1.0/perl5 share/swig/4.1.0/php share/swig/4.1.0/python share/swig/4.1.0/r share/swig/4.1.0/ruby share/swig/4.1.0/scilab share/swig/4.1.0/std share/swig/4.1.0/tcl share/swig/4.1.0/typemaps share/swig/4.1.0/xml'
 
@@ -156,7 +158,7 @@ jobs:
       uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: swig-windows.zip
+        file: build/swig-windows/swig-windows.zip
         asset_name: swig-windows.zip
         tag: ${{ github.ref }}
 
@@ -216,7 +218,8 @@ jobs:
       uses: thedoctor0/zip-release@main
       with:
         type: 'zip'
-        path: 'build/swig-mac'
+        directory: 'build/swig-mac'
+        path: '.'
         filename: 'swig-mac.zip'
         exclusions: 'share/swig/4.1.0/csharp share/swig/4.1.0/d share/swig/4.1.0/go share/swig/4.1.0/guile share/swig/4.1.0/java share/swig/4.1.0/javascript/jsc share/swig/4.1.0/javascript/v8 share/swig/4.1.0/lua share/swig/4.1.0/mzscheme share/swig/4.1.0/ocaml share/swig/4.1.0/octave share/swig/4.1.0/perl5 share/swig/4.1.0/php share/swig/4.1.0/python share/swig/4.1.0/r share/swig/4.1.0/ruby share/swig/4.1.0/scilab share/swig/4.1.0/std share/swig/4.1.0/tcl share/swig/4.1.0/typemaps share/swig/4.1.0/xml'
 
@@ -225,7 +228,7 @@ jobs:
       uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
       with:
         repo_token: ${{ secrets.GITHUB_TOKEN }}
-        file: swig-mac.zip
+        file: build/swig-mac/swig-mac.zip
         asset_name: swig-mac.zip
         tag: ${{ github.ref }}
 
