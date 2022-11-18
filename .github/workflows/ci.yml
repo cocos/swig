@@ -75,10 +75,12 @@ jobs:
 
     - name: Pack dist files
       if: github.event_name == 'release'
-      uses: vimtor/action-zip@5f1c4aa587ea41db1110df6a99981dbe19cee310
+      uses: thedoctor0/zip-release@main
       with:
-        files: build/swig-linux/
-        dest: swig-linux.zip
+        type: 'zip'
+        path: 'build/swig-linux'
+        filename: 'swig-linux.zip'
+        exclusions: 'share/swig/4.1.0/csharp share/swig/4.1.0/d share/swig/4.1.0/go share/swig/4.1.0/guile share/swig/4.1.0/java share/swig/4.1.0/javascript/jsc share/swig/4.1.0/javascript/v8 share/swig/4.1.0/lua share/swig/4.1.0/mzscheme share/swig/4.1.0/ocaml share/swig/4.1.0/octave share/swig/4.1.0/perl5 share/swig/4.1.0/php share/swig/4.1.0/python share/swig/4.1.0/r share/swig/4.1.0/ruby share/swig/4.1.0/scilab share/swig/4.1.0/std share/swig/4.1.0/tcl share/swig/4.1.0/typemaps share/swig/4.1.0/xml'
 
     - name: Upload to Release
       if: github.event_name == 'release'
@@ -142,10 +144,12 @@ jobs:
 
     - name: Pack dist files
       if: github.event_name == 'release'
-      uses: vimtor/action-zip@5f1c4aa587ea41db1110df6a99981dbe19cee310
+      uses: thedoctor0/zip-release@main
       with:
-        files: build/swig-windows/
-        dest: swig-windows.zip
+        type: 'zip'
+        path: 'build/swig-windows'
+        filename: 'swig-windows.zip'
+        exclusions: 'share/swig/4.1.0/csharp share/swig/4.1.0/d share/swig/4.1.0/go share/swig/4.1.0/guile share/swig/4.1.0/java share/swig/4.1.0/javascript/jsc share/swig/4.1.0/javascript/v8 share/swig/4.1.0/lua share/swig/4.1.0/mzscheme share/swig/4.1.0/ocaml share/swig/4.1.0/octave share/swig/4.1.0/perl5 share/swig/4.1.0/php share/swig/4.1.0/python share/swig/4.1.0/r share/swig/4.1.0/ruby share/swig/4.1.0/scilab share/swig/4.1.0/std share/swig/4.1.0/tcl share/swig/4.1.0/typemaps share/swig/4.1.0/xml'
 
     - name: Upload to Release
       if: github.event_name == 'release'
@@ -209,10 +213,13 @@ jobs:
     #     path: build/swig-mac
     - name: Pack dist files
       if: github.event_name == 'release'
-      uses: vimtor/action-zip@5f1c4aa587ea41db1110df6a99981dbe19cee310
+      uses: thedoctor0/zip-release@main
       with:
-        files: build/swig-mac/
-        dest: swig-mac.zip
+        type: 'zip'
+        path: 'build/swig-mac'
+        filename: 'swig-mac.zip'
+        exclusions: 'share/swig/4.1.0/csharp share/swig/4.1.0/d share/swig/4.1.0/go share/swig/4.1.0/guile share/swig/4.1.0/java share/swig/4.1.0/javascript/jsc share/swig/4.1.0/javascript/v8 share/swig/4.1.0/lua share/swig/4.1.0/mzscheme share/swig/4.1.0/ocaml share/swig/4.1.0/octave share/swig/4.1.0/perl5 share/swig/4.1.0/php share/swig/4.1.0/python share/swig/4.1.0/r share/swig/4.1.0/ruby share/swig/4.1.0/scilab share/swig/4.1.0/std share/swig/4.1.0/tcl share/swig/4.1.0/typemaps share/swig/4.1.0/xml'
+
     - name: Upload to Release
       if: github.event_name == 'release'
       uses: svenstaro/upload-release-action@e74ff71f7d8a4c4745b560a485cc5fdb9b5b999d
