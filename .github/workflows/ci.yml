@@ -81,7 +81,7 @@ jobs:
         directory: 'build/swig-linux'
         path: '.'
         filename: 'swig-linux.zip'
-        exclusions: 'share/swig/4.1.0/csharp share/swig/4.1.0/d share/swig/4.1.0/go share/swig/4.1.0/guile share/swig/4.1.0/java share/swig/4.1.0/javascript/jsc share/swig/4.1.0/javascript/v8 share/swig/4.1.0/lua share/swig/4.1.0/mzscheme share/swig/4.1.0/ocaml share/swig/4.1.0/octave share/swig/4.1.0/perl5 share/swig/4.1.0/php share/swig/4.1.0/python share/swig/4.1.0/r share/swig/4.1.0/ruby share/swig/4.1.0/scilab share/swig/4.1.0/std share/swig/4.1.0/tcl share/swig/4.1.0/typemaps share/swig/4.1.0/xml'
+        exclusions: '*/csharp/* */d/* */go/* */guile/* */java/* */javascript/jsc/* */javascript/v8/* */lua/* */mzscheme/* */ocaml/* */octave/* */perl5/* */php/* */python/* */r/* */ruby/* */scilab/* */tcl/* */xml'
 
     - name: Upload to Release
       if: github.event_name == 'release'
@@ -151,7 +151,7 @@ jobs:
         directory: 'build/swig-windows'
         path: '.'
         filename: 'swig-windows.zip'
-        exclusions: 'share/swig/4.1.0/csharp share/swig/4.1.0/d share/swig/4.1.0/go share/swig/4.1.0/guile share/swig/4.1.0/java share/swig/4.1.0/javascript/jsc share/swig/4.1.0/javascript/v8 share/swig/4.1.0/lua share/swig/4.1.0/mzscheme share/swig/4.1.0/ocaml share/swig/4.1.0/octave share/swig/4.1.0/perl5 share/swig/4.1.0/php share/swig/4.1.0/python share/swig/4.1.0/r share/swig/4.1.0/ruby share/swig/4.1.0/scilab share/swig/4.1.0/std share/swig/4.1.0/tcl share/swig/4.1.0/typemaps share/swig/4.1.0/xml'
+        exclusions: '*/csharp/* */d/* */go/* */guile/* */java/* */javascript/jsc/* */javascript/v8/* */lua/* */mzscheme/* */ocaml/* */octave/* */perl5/* */php/* */python/* */r/* */ruby/* */scilab/* */tcl/* */xml'
 
     - name: Upload to Release
       if: github.event_name == 'release'
@@ -221,7 +221,7 @@ jobs:
         directory: 'build/swig-mac'
         path: '.'
         filename: 'swig-mac.zip'
-        exclusions: 'share/swig/4.1.0/csharp share/swig/4.1.0/d share/swig/4.1.0/go share/swig/4.1.0/guile share/swig/4.1.0/java share/swig/4.1.0/javascript/jsc share/swig/4.1.0/javascript/v8 share/swig/4.1.0/lua share/swig/4.1.0/mzscheme share/swig/4.1.0/ocaml share/swig/4.1.0/octave share/swig/4.1.0/perl5 share/swig/4.1.0/php share/swig/4.1.0/python share/swig/4.1.0/r share/swig/4.1.0/ruby share/swig/4.1.0/scilab share/swig/4.1.0/std share/swig/4.1.0/tcl share/swig/4.1.0/typemaps share/swig/4.1.0/xml'
+        exclusions: '*/csharp/* */d/* */go/* */guile/* */java/* */javascript/jsc/* */javascript/v8/* */lua/* */mzscheme/* */ocaml/* */octave/* */perl5/* */php/* */python/* */r/* */ruby/* */scilab/* */tcl/* */xml'
 
     - name: Upload to Release
       if: github.event_name == 'release'
