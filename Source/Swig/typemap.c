@@ -688,6 +688,32 @@ ret_result:
   return result;
 }
 
+static int is_output_typemap_function_only(Hash* tm) {
+    if (!tm) {
+        return 0;
+    }
+    Hash* tmapOut = Getattr(tm, "tmap:out");
+    Hash* kwargs = 0;
+    if (tmapOut) {
+        kwargs = Getattr(tmapOut, "kwargs");
+        if (kwargs) {
+            String* name = Getattr(kwargs, "name");
+            if (name && 0 == Cmp(name, "func_only")) {
+                return GetInt(kwargs, "value");
+            }
+        }
+    }
+    return 0;
+}
+
+static int is_function_node(Node* node) {
+    if (!node) {
+        return 0;
+    }
+    String *kind = Getattr(node, "kind");
+    return (0 == Cmp(kind, "function"));
+}
+
 /* -----------------------------------------------------------------------------
  * typemap_search()
  *
@@ -724,6 +750,11 @@ static Hash *typemap_search(const_String_or_char_ptr tmap_method, SwigType *type
   while (ctype) {
     /* Try to get an exact type-match */
     tm = get_typemap(ctype);
+      // cjh : Support typemap with func_only.
+    if (tm && !is_function_node(node) && is_output_typemap_function_only(tm)) {
+        tm = 0;
+    }
+
     result = typemap_search_helper(debug_display, tm, tm_method, ctype, cqualifiedname, cname, &backup);
     if (result && Getattr(result, "code"))
       goto ret_result;
