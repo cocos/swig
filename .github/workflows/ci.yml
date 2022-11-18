@@ -151,7 +151,7 @@ jobs:
         directory: 'build/swig-windows'
         path: '.'
         filename: 'swig-windows.zip'
-        exclusions: '*/csharp/* */d/* */go/* */guile/* */java/* */javascript/jsc/* */javascript/v8/* */lua/* */mzscheme/* */ocaml/* */octave/* */perl5/* */php/* */python/* */r/* */ruby/* */scilab/* */tcl/* */xml/*'
+        exclusions: '*\csharp\* *\d\* *\go\* *\guile\* *\java\* *\javascript\jsc\* *\javascript\v8\* *\lua\* *\mzscheme\* *\ocaml\* *\octave\* *\perl5\* *\php\* *\python\* *\r\* *\ruby\* *\scilab\* *\tcl\* *\xml\*'
 
     - name: Upload to Release
       if: github.event_name == 'release'
