@@ -84,7 +84,13 @@ check_function_exists (popen HAVE_POPEN)
 
 if (MSVC)
   set (CMAKE_CXX_FLAGS "/EHsc ${CMAKE_CXX_FLAGS}")
-endif ()
+else()
+  set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -ffunction-sections -fdata-sections -fstrict-aliasing")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -ffunction-sections -fdata-sections -fstrict-aliasing -fno-rtti -fno-exceptions")
+
+  set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} -fvisibility=hidden -fomit-frame-pointer")
+  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fvisibility=hidden -fvisibility-inlines-hidden -fomit-frame-pointer")
+ endif ()
 
 option (WITH_PCRE "Enable PCRE" ON)
 if (WITH_PCRE)
@@ -188,6 +194,12 @@ add_executable (swig
 
 if (MSVC)
 set_property(TARGET swig PROPERTY MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+else()
+  if (LINUX)
+    set_target_properties(swig PROPERTIES LINK_FLAGS " -Wl,--gc-sections")
+  else()
+    set_target_properties(swig PROPERTIES LINK_FLAGS " -Wl,-dead_strip")
+  endif()
 endif ()
 
 if (PCRE2_FOUND)
