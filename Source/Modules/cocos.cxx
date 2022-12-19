@@ -6,9 +6,9 @@
  * included with the SWIG source code as distributed by the SWIG developers
  * and at http://www.swig.org/legal.html.
  *
- * javascript.cxx
+ * cocos.cxx
  *
- * Javascript language module for SWIG.
+ * Cocos's Script Engine module for SWIG.
  * ----------------------------------------------------------------------------- */
 
 #include "cparse.h"
