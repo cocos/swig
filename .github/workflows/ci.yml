@@ -11,7 +11,8 @@ on:
       - 'Doc/**'
       - 'appveyor.yml'
   pull_request:
-    branches: master
+    branches:
+      - '**'
     paths-ignore:
       - 'CHANGES*'
       - 'Doc/**'
