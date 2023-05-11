@@ -1221,6 +1221,10 @@ int JSEmitter::emitCtor(Node *n) {
     auto& state = currentState();
     Wrapper *wrapper = NewWrapper();
 
+    bool is_overloaded = GetFlag(n, "sym:overloaded") != 0;
+
+    Template t_ctor(getTemplate("js_ctor"));
+
     auto * classNode = getClassNode(n);
     auto* symName = Copy(Getattr(classNode, "classtype"));
     convertToMangledName(symName);
@@ -1230,54 +1234,6 @@ int JSEmitter::emitCtor(Node *n) {
     String *wrap_name = Swig_name_wrapper(symName);
     Delete(symName);
     symName = nullptr;
-    
-    bool isDefaultConstructor = GetFlag(n, "default_constructor") != 0;
-    if (isDefaultConstructor) {
-        bool isStruct = (0 == Cmp(Getattr(classNode, "kind"), "struct"));
-        if (isStruct) {
-            String* propertyConversionCode = NewString("");
-            auto propertyNames = getStructProperties(classNode);
-            uint32_t argIndex = 0;
-            for (const auto& propertyName : propertyNames) {
-                Template t_jsc_struct_prop_snippet(getTemplate("js_struct_default_constructor_args"));
-                t_jsc_struct_prop_snippet.replace("$field_name", propertyName.name.c_str())
-                    .replace("$field_symname", propertyName.symName.c_str())
-                    .replace("$js_arg_index", std::to_string(argIndex).c_str())
-                    .pretty_print(propertyConversionCode);
-                ++argIndex;
-            }
-            
-            Setattr(n, "wrap:name", wrap_name);
-            Printf(wrapper->locals, "%sresult;", SwigType_str(Getattr(n, "type"), 0));
-            
-            String *action = emit_action(n);
-            Printv(wrapper->code, action, "\n", 0);
-            
-            Template t_ctor(getTemplate("js_ctor_for_struct_default_constructor"));
-            
-            t_ctor.replace("$jswrapper", wrap_name)
-                .replace("$jsmangledtype", state.clazz(TYPE_MANGLED))
-                .replace("$jsmangledname", state.clazz(NAME_MANGLED))
-                .replace("$jsname", state.clazz(NAME))
-                .replace("$jsdtor", dtorSymName)
-                .replace("$jslocals", wrapper->locals)
-                .replace("$jscode", wrapper->code)
-                .replace("$assign_struct_default_args", propertyConversionCode)
-                .pretty_print(s_wrappers);
-            
-            DelWrapper(wrapper);
-            Delete(propertyConversionCode);
-            
-            Clear(state.clazz(CTOR));
-            Printf(state.clazz(CTOR), "_SE(%s)", wrap_name);
-            
-            return SWIG_OK;
-        }
-    }
-    
-    bool is_overloaded = GetFlag(n, "sym:overloaded") != 0;
-
-    Template t_ctor(getTemplate("js_ctor"));
     
     if (is_overloaded) {
         t_ctor = getTemplate("js_overloaded_ctor");
