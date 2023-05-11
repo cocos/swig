@@ -741,6 +741,7 @@ int COCOS::constantWrapper(Node *n) {
 //    // which could be fixed with a cleaner approach
 //    emitter->emitConstant(n);
 
+//    printf("Ignore constant: %s\n", GetChar(n, "name"));
     return SWIG_OK;
 }
 
@@ -1054,10 +1055,15 @@ int JSEmitter::emitWrapperFunction(Node *n) {
             bool is_member = GetFlag(n, "ismember") != 0;
             bool is_setter = GetFlag(n, "memberset") != 0 || GetFlag(n, "varset") != 0;
             bool is_getter = GetFlag(n, "memberget") != 0 || GetFlag(n, "varget") != 0;
-            if (is_setter) {
-                ret = emitSetter(n, is_member, is_static);
-            } else if (is_getter) {
-                ret = emitGetter(n, is_member, is_static);
+
+            if (is_static && (GetFlag(n, "varset") == 0 || GetFlag(n, "varget") == 0)) {
+//                printf("Ignore static variable: %s\n", GetChar(n, "name"));
+            } else {
+                if (is_setter) {
+                    ret = emitSetter(n, is_member, is_static);
+                } else if (is_getter) {
+                    ret = emitGetter(n, is_member, is_static);
+                }
             }
 
         } else {
@@ -2328,20 +2334,24 @@ int CocosEmitter::exitVariable(Node *n) {
 
     if (GetFlag(n, "ismember")) {
 //        Swig_print(state.variable(GETTER), -1); //cjh added
+        auto getterName = state.variable(GETTER);
+        auto setterName = state.variable(SETTER);
 
         if (GetFlag(state.variable(), IS_STATIC) || Equal(Getattr(n, "nodeType"), "enumitem")) {
-            Template t_static_variable(getTemplate("jsc_static_variable_declaration"));
-            t_static_variable.replace("$jsname", jsname.c_str())
-                .replace("$jsgetter", state.variable(GETTER))
-                .replace("$jssetter", state.variable(SETTER));
-
-            t_static_variable.pretty_print(state.clazz(STATIC_VARIABLES));
+            //cjh: Ignore static variables whose setter and getter are both nullptr.
+            if (0 != Cmp(getterName, "nullptr") || 0 != Cmp(setterName, "nullptr")) {
+                Template t_static_variable(getTemplate("jsc_static_variable_declaration"));
+                t_static_variable.replace("$jsname", jsname.c_str())
+                    .replace("$jsgetter", getterName)
+                    .replace("$jssetter", setterName);
+                
+                t_static_variable.pretty_print(state.clazz(STATIC_VARIABLES));
+            }
         } else {
-
             Template t_variable(getTemplate("jsc_variable_declaration"));
             t_variable.replace("$jsname", jsname.c_str())
-                .replace("$jsgetter", state.variable(GETTER))
-                .replace("$jssetter", state.variable(SETTER));
+                .replace("$jsgetter", getterName)
+                .replace("$jssetter", setterName);
 
             t_variable.pretty_print(state.clazz(MEMBER_VARIABLES));
         }
