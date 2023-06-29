@@ -1241,6 +1241,8 @@ int JSEmitter::emitCtor(Node *n) {
     Delete(symName);
     symName = nullptr;
     
+    String *wrapNameWithoutOverloadName = Copy(wrap_name);
+    
     if (is_overloaded) {
         t_ctor = getTemplate("js_overloaded_ctor");
         Append(wrap_name, Getattr(n, "sym:overname"));
@@ -1300,22 +1302,22 @@ int JSEmitter::emitCtor(Node *n) {
     // create a dispatching ctor
     if (is_overloaded) {
         if (!Getattr(n, "sym:nextSibling")) {
-            String *wrap_name = Swig_name_wrapper(Getattr(n, "sym:name"));
             Template t_mainctor(getTemplate("js_ctor_dispatcher"));
-            t_mainctor.replace("$jswrapper", wrap_name)
+            t_mainctor.replace("$jswrapper", wrapNameWithoutOverloadName)
                 .replace("$jsmangledname", state.clazz(NAME_MANGLED))
                 .replace("$jsname", state.clazz(NAME))
                 .replace("$jsdtor", dtorSymName)
                 .replace("$jsdispatchcases", state.clazz(CTOR_DISPATCHERS))
                 .pretty_print(s_wrappers);
 
-            Printf(state.clazz(CTOR), "_SE(%s)", wrap_name);
+            Printf(state.clazz(CTOR), "_SE(%s)", wrapNameWithoutOverloadName);
         }
     } else {
         Printf(state.clazz(CTOR), "_SE(%s)", wrap_name);
     }
 
     Delete(dtorSymName);
+    Delete(wrapNameWithoutOverloadName);
 
     return SWIG_OK;
 }
