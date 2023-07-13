@@ -29,7 +29,6 @@ static bool js_template_enable_debug = false;
 
 // keywords used for state variables
 #define NAME "name"
-#define NEST_CLASS_NAME_LIST "nest_class_name_list"
 #define NAME_MANGLED "name_mangled"
 #define TYPE "type"
 #define TYPE_MANGLED "type_mangled"
@@ -1099,14 +1098,6 @@ int JSEmitter::enterClass(Node *n) {
     auto& state = currentState();
     state.clazz(RESET);
     state.clazz(NAME, Getattr(n, "sym:name"));
-
-    auto* nestClassNameList = createNestClassSymNameList(n);
-    if (nestClassNameList != nullptr) {
-        state.clazz(NEST_CLASS_NAME_LIST, nestClassNameList);
-        Delete(nestClassNameList);
-        nestClassNameList = nullptr;
-    }
-
     state.clazz("nspace", current_namespace);
 
     // Creating a mangled name using the current namespace and the symbol name
@@ -1114,15 +1105,10 @@ int JSEmitter::enterClass(Node *n) {
     //cjh
     Printf(mangled_name, "%s", Getattr(n, "classtype"));
     convertToMangledName(mangled_name);
-    //
-
-
-
-    // Printf(mangled_name, "%s_%s", Getattr(current_namespace, NAME_MANGLED), Getattr(n, "sym:name"));
 
     state.clazz(NAME_MANGLED, mangled_name);
     Delete(mangled_name);
-
+    
     state.clazz(TYPE, NewString(Getattr(n, "classtype")));
 
     String *type = SwigType_manglestr(Getattr(n, "classtypeobj"));
@@ -2382,35 +2368,18 @@ int CocosEmitter::enterClass(Node *n) {
     state.clazz(STATIC_VARIABLES, NewStringEmpty());
     state.clazz(STATIC_FUNCTIONS, NewStringEmpty());
 
-    String* finalizerFunction = nullptr;
-    auto* nestClassNameList = state.clazz(NEST_CLASS_NAME_LIST);
-    if (nestClassNameList != nullptr){
-        finalizerFunction = joinClassSymNameWithList(nestClassNameList, "_");
-        auto namespaceNameArray = getNamespaceNameArray(n);
-        if (!namespaceNameArray.empty()) {
-            std::string namespaceName = join(namespaceNameArray, "_");
-            namespaceName.append("_");
-            Insert(finalizerFunction, 0, namespaceName.c_str());
-        }
-    }
-    else {
-        finalizerFunction = state.clazz(NAME_MANGLED);
-    }
-
     String *moduleMacro = Getattr(n, "feature:module_macro");
     if (moduleMacro) {
         Printv(s_wrappers, "#if ", moduleMacro, "\n", NIL);
     }
+    
+    String *mangledName = state.clazz(NAME_MANGLED);
 
     Template t_class_decl = getTemplate("jsc_class_declaration");
     String *type = SwigType_manglestr(Getattr(n, "classtypeobj"));
-    t_class_decl.replace("$jsmangledname", state.clazz(NAME_MANGLED))
-        .replace("$jsdtor", finalizerFunction)
+    t_class_decl.replace("$jsmangledname", mangledName)
+        .replace("$jsdtor", mangledName)
         .pretty_print(s_wrappers);
-
-    if (nestClassNameList != nullptr) {
-        Delete(finalizerFunction);
-    }
 
     return SWIG_OK;
 }
@@ -2437,8 +2406,9 @@ int CocosEmitter::exitClass(Node *n) {
     /* prepare registration of base class */
     String *jsclass_inheritance = NewStringEmpty();
     Node *base_class = getBaseClass(n);
-    auto* nestClassNameList = state.clazz(NEST_CLASS_NAME_LIST);
+    
     String* jsname = NewStringEmpty();
+    auto* nestClassNameList = createNestClassSymNameList(n);
     if (nestClassNameList) {
         Append(jsname, "###cc");
         int sz = Len(nestClassNameList);
@@ -2450,6 +2420,7 @@ int CocosEmitter::exitClass(Node *n) {
             }
         }
         Append(jsname, "cc###");
+        Delete(nestClassNameList);
     }
     else {
         Printf(jsname, "\"%s\"", state.clazz(NAME));
