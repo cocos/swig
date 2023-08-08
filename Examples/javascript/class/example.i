@@ -5,71 +5,218 @@
 // %include <std_vector.i>
 %include <attribute.i>
 
-%import stlmodule.i
+// %import stlmodule.i
 
 %{
 // #include "example.h"
 #include "example_wrap.h"
 %}
 
-%define SWIG_INCLUDE(file) 
-%include file
-%enddef
-
-%define SWIG_MY_INCLUDE(file)
-%include file
-%{
-#include "file"
-%}
-%enddef
-
-%module_macro(USE_A_CLASS) A;
-class A {
-
-};
-
-%release_returned_cpp_object_in_gc(TestFeature::createA);
-
-%module_macro(USE_TEST_FEATURE) TestFeature;
-
-%module_macro(USE_A) TestFeature::createA;
-%module_macro(USE_B) TestFeature::fooB;
-
-%module_macro(USE_OVERLOAD) TestFeature::testOverload;
-
-%module_macro(USE_GETTER_SETTER) TestFeature::myattr;
-
-%attribute(TestFeature, int, myattr, get_attr, set_attr);
-%attribute(TestFeature, int, myattr2, get_attr2, set_attr2);
+%virtual_inherit(cc::InterfaceA);
+%virtual_inherit(cc::InterfaceB);
+%virtual_inherit(cc::NativeA);
 
 
+namespace cc {
 
-class TestFeature {
+class VirtualInheritBase {
+protected:
+    VirtualInheritBase() = default;
 public:
-    // %feature("module_macro", "USE_A");
-    static A* createA();
+    virtual ~VirtualInheritBase() = default;
+    void virtualBaseFoo();
+};
 
-    static void fooB();
-    void foo(int a, int b, A*);
+class InterfaceA : virtual public VirtualInheritBase {
+public:
+    virtual void foo_a() = 0;
+protected:
+    InterfaceA();
+};
 
-    void testOverload(int a);
-    void testOverload(int a, int b);
-    void testOverload(int a, int b, bool c);
+class NativeA : public InterfaceA {
+public:
+    void foo_a() override;
+};
 
-    void set_attr(int v);
-    int get_attr() const;
+class InterfaceB : virtual public InterfaceA {
+public:
+    virtual void foo_b() = 0;
+protected:
+    InterfaceB();
+};
 
-    void set_attr2(int v);
-    int get_attr2() const;
+class Manager {
+public:
+    InterfaceA* createA() {};
+    InterfaceB* createB() {};
+};
+
+}
+
+
+//%rename(DDD) myns1::ns2::ns3::AAA;
+//%rename(EEE) myns1::ns2::ns3::AAA::BBB;
+// %rename(FFF) myns1::ns2::ns3::AAA::BBB::CCC;
+
+
+// namespace myns1::ns2::ns3 {
+
+// class AAA {
+// public:
+//     void fooA();
+
+//     class BBB {
+//     public:
+//         void fooB();
+
+//         class CCC {
+//         public:
+//             CCC(int a);
+//             CCC(int a, bool);
+//             CCC(int a, bool, float);
+//             void fooC();
+//         };
+//     };
+
+//     // struct ISubMesh {
+//     //     std::vector<uint32_t> vertexBundelIndices;
+//     //     int a;
+//     // };
+// };
+
+// }
+
+
+// static const uint32_t MY_GLOBAL = 4;
+
+// %attribute(RenderEntity, uint32_t, myInt, getMyInt, setMyInt);
+
+
+// struct RenderEntity final {
+// public:
+//     static const  uint32_t STATIC_DRAW_INFO_CAPACITY;
+//     static const std::string hello = "hello";
+//     static const std::string NAME;
+
+//     // uint32_t getMyInt();
+//     // void setMyInt(uint32_t i);
+
+//     // void foo();
+// };
+
+// namespace cc  { namespace gfx {
+
+//     class Color {
+//     public:
+
+//         // class InternalColor {
+//         // public:
+//         //     InternalColor(int x);
+//         //     InternalColor(int x, int y);
+
+//         //     void foo(int x);
+//         //     void foo(int x, int y);
+
+//         // private:
+//         //     int x;
+//         //     int y;
+//         // };
+
+//         Color(uint8_t r);
+//         Color(uint8_t r, uint8_t g);
+//         Color(uint8_t r, uint8_t g, uint16_t);
+
+//         // void haha(int x);
+//         // void haha(int x, int y);
+//     private:
+//         uint8_t r;
+//         uint8_t g;
+//         uint8_t b;
+//         uint8_t a;
+//     };
+// }}
+
+
+// namespace cc::gfx {
+
+// #define EXPOSE_COPY_FN(type)      \
+//     type &copy(const type &rhs) { \
+//         *this = rhs;              \
+//         return *this;             \
+//     }
+
+// struct Size {
+//     public:
+//     // Size(uint32_t x = 0, uint32_t y = 0) {}
+
+//     uint32_t x{0};
+//     uint32_t y{0};
+//     uint32_t z{0};
+
+//     EXPOSE_COPY_FN(Size)
+// };
+
+// }
+
+// %define SWIG_INCLUDE(file) 
+// %include file
+// %enddef
+
+// %define SWIG_MY_INCLUDE(file)
+// %include file
+// %{
+// #include "file"
+// %}
+// %enddef
+
+// %module_macro(USE_A_CLASS) A;
+// class A {
+
+// };
+
+// %release_returned_cpp_object_in_gc(TestFeature::createA);
+
+// %module_macro(USE_TEST_FEATURE) TestFeature;
+
+// %module_macro(USE_A) TestFeature::createA;
+// %module_macro(USE_B) TestFeature::fooB;
+
+// %module_macro(USE_OVERLOAD) TestFeature::testOverload;
+
+// %module_macro(USE_GETTER_SETTER) TestFeature::myattr;
+
+// %attribute(TestFeature, int, myattr, get_attr, set_attr);
+// %attribute(TestFeature, int, myattr2, get_attr2, set_attr2);
+
+
+
+// class TestFeature {
+// public:
+//     // %feature("module_macro", "USE_A");
+//     static A* createA();
+
+//     static void fooB();
+//     void foo(int a, int b, A*);
+
+//     void testOverload(int a);
+//     void testOverload(int a, int b);
+//     void testOverload(int a, int b, bool c);
+
+//     void set_attr(int v);
+//     int get_attr() const;
+
+//     void set_attr2(int v);
+//     int get_attr2() const;
     
-    // float floatValue1;
-    // int intValue1;
-};
+//     // float floatValue1;
+//     // int intValue1;
+// };
 
-class TestNoFeature {
-    public:
-    void hello();
-};
+// class TestNoFeature {
+//     public:
+//     void hello();
+// };
 
 // static void hello_static_global();
 

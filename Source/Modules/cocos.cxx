@@ -13,6 +13,7 @@
 
 #include "cparse.h"
 #include "swigmod.h"
+
 #include <vector>
 #include <string>
 #include <stack>
@@ -74,6 +75,15 @@ static std::string join(const std::vector<std::string>& v, const std::string& c)
         }
     }
     return s.str();
+}
+
+static bool isParentClassSupportVirtualInherit(Node *n) {
+    Node *parentNode = parentNode(n);
+    if (parentNode != nullptr) {
+        return GetFlag(parentNode, "feature:virtual_inherit") != 0;
+    }
+
+    return false;
 }
 
 static Node* getParentNodeByNodeType(Node* n, const char* nodeType) {
@@ -1262,6 +1272,15 @@ int JSEmitter::emitCtor(Node *n) {
             .replace("$jsargcount", argCount)
             .pretty_print(jsCheckArgCountStr);
     }
+    
+    static const char* js_default_set_private_object_code = R"(auto *ptr = JSB_MAKE_PRIVATE_OBJECT_WITH_INSTANCE(result);
+s.thisObject()->setPrivateObject(ptr);)";
+    
+    static const char* js_virtual_inherit_set_private_object_code = R"(auto *ptr = JSB_MAKE_PRIVATE_OBJECT_WITH_INSTANCE(static_cast<cc::VirtualInheritBase*>(result));
+s.thisObject()->setPrivateObject(ptr);)";
+    
+    const char *js_set_private_object_code = isParentClassSupportVirtualInherit(n)
+        ? js_virtual_inherit_set_private_object_code : js_default_set_private_object_code;
 
     t_ctor.replace("$jswrapper", wrap_name)
         .replace("$jsmangledtype", state.clazz(TYPE_MANGLED))
@@ -1272,6 +1291,7 @@ int JSEmitter::emitCtor(Node *n) {
         .replace("$jscode", wrapper->code)
         .replace("$jsargcount", argCount)
         .replace("$js_check_arg_count", jsCheckArgCountStr)
+        .replace("$js_set_private_object", js_set_private_object_code)
         .pretty_print(s_wrappers);
 
     Delete(jsCheckArgCountStr);
@@ -1313,6 +1333,7 @@ int JSEmitter::emitDtor(Node *n) {
 
     auto * classNode = getClassNode(n);
     auto* symName = Copy(Getattr(classNode, "classtype"));
+    auto* classType = Copy(symName);
 
     convertToMangledName(symName);
     Insert(symName, 0, "delete_");
@@ -1417,9 +1438,10 @@ int JSEmitter::emitDtor(Node *n) {
     if (destructor_action) {
         Template t_dtor = getTemplate("js_dtoroverride");
         state.clazz(DTOR, wrap_name);
-        t_dtor.replace("${classname_mangled}", state.clazz(NAME_MANGLED))
+        t_dtor.replace("$classname_mangled", state.clazz(NAME_MANGLED))
             .replace("$jswrapper", wrap_name)
             .replace("$jsfree", jsfree)
+            .replace("$jsclass_type", classType)
             .replace("$jstype", ctype);
 
         t_dtor.replace("${destructor_action}", destructor_action);
@@ -1427,9 +1449,10 @@ int JSEmitter::emitDtor(Node *n) {
     } else {
         Template t_dtor = getTemplate("js_dtor");
         state.clazz(DTOR, wrap_name);
-        t_dtor.replace("$jsmangledname", state.clazz(NAME_MANGLED))
+        t_dtor.replace("$classname_mangled", state.clazz(NAME_MANGLED))
             .replace("$jswrapper", wrap_name)
             .replace("$jsfree", jsfree)
+            .replace("$jsclass_type", classType)
             .replace("$jstype", ctype)
             .pretty_print(s_wrappers);
     }
@@ -1437,6 +1460,7 @@ int JSEmitter::emitDtor(Node *n) {
     Delete(p_classtype);
     Delete(ctype);
     Delete(jsfree);
+    Delete(classType);
 
     return SWIG_OK;
 }
